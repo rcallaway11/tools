@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CAP Status</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CAP Status">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1f3d2b">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f1ea;
+    --card: #ffffff;
+    --ink: #1d2420;
+    --muted: #6b726d;
+    --line: #e6e1d6;
+    --forest: #1f3d2b;
+    --forest-2: #2f5a3f;
+    --open: #2e7d32;
+    --open-bg: #e6f3e7;
+    --hold: #e07a00;
+    --hold-bg: #fff1de;
+    --closed: #c62828;
+    --closed-bg: #fbe5e5;
+    --green: #2e7d32;
+    --blue: #1565c0;
+    --black: #111111;
+    --hike: #6d4c41;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 32px; }
+
+  /* Header */
+  header {
+    background: linear-gradient(135deg, var(--forest) 0%, var(--forest-2) 100%);
+    color: #fff; padding: calc(22px + env(safe-area-inset-top)) 0 56px; position: relative; overflow: hidden;
+  }
+  header svg.hills { position: absolute; bottom: 0; left: 0; width: 100%; height: 60px; }
+  header .wrap { padding-bottom: 0; position: relative; }
+  .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+  h1 { margin: 2px 0 6px; font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12.5px; }
+  .meta .pill { background: rgba(255,255,255,.14); padding: 3px 10px; border-radius: 999px; }
+  .fire { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+  .fire .flame { width: 9px; height: 9px; border-radius: 50%; background: #ffb74d; box-shadow: 0 0 0 3px rgba(255,183,77,.3); }
+  .fire.high .flame, .fire.very .flame, .fire.extreme .flame { background: #ff5252; box-shadow: 0 0 0 3px rgba(255,82,82,.3); }
+  .fire.low .flame { background: #81c784; box-shadow: 0 0 0 3px rgba(129,199,132,.3); }
+
+  main.wrap { margin-top: -40px; position: relative; }
+
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 20px rgba(31,61,43,.06); padding: 18px; margin-bottom: 14px; }
+  .card h2 { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+
+  .errors { background: var(--closed-bg); color: var(--closed); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; display: none; white-space: pre-line; }
+
+  /* Core status tiles */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .tile { border-radius: 12px; padding: 12px 14px; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+  .tile .lbl { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .tile .val { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .tile.open { background: var(--open-bg); border-color: transparent; } .tile.open .val { color: var(--open); }
+  .tile.hold { background: var(--hold-bg); border-color: transparent; } .tile.hold .val { color: var(--hold); }
+  .tile.closed { background: var(--closed-bg); border-color: transparent; } .tile.closed .val { color: var(--closed); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; flex: none; }
+  .tile.open .dot { box-shadow: 0 0 0 4px rgba(46,125,50,.15); }
+
+  .hours { margin-top: 12px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f7f5f0; border-radius: 10px; font-size: 13.5px; }
+  .hours b { font-size: 15px; }
+  .hours .clock { width: 18px; height: 18px; flex: none; color: var(--forest-2); }
+
+  details.facilities { margin-top: 12px; }
+  details.facilities summary { cursor: pointer; color: var(--forest-2); font-weight: 600; font-size: 13px; list-style: none; user-select: none; }
+  details.facilities summary::-webkit-details-marker { display: none; }
+  details.facilities summary::before { content: "▸ "; }
+  details.facilities[open] summary::before { content: "▾ "; }
+  .fac-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px 16px; margin-top: 10px; }
+  .fac { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  .status-txt { font-weight: 700; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
+  .status-txt.open { color: var(--open); } .status-txt.hold { color: var(--hold); } .status-txt.closed { color: var(--closed); } .status-txt.unknown { color: var(--muted); }
+
+  /* Daily update */
+  .upd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .upd-title { font-size: 17px; font-weight: 700; }
+  .badge { font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+  .badge.open { background: var(--open-bg); color: var(--open); }
+  .badge.hold { background: var(--hold-bg); color: var(--hold); }
+  .badge.closed { background: var(--closed-bg); color: var(--closed); }
+  .upd-body p { margin: 0 0 8px; color: #333a35; }
+  .upd-body p.lead { font-weight: 600; color: var(--ink); }
+  .forecast { display: flex; gap: 10px; background: #eef4fb; border-radius: 10px; padding: 10px 12px; color: #23415f; margin-top: 4px; }
+  .forecast b { white-space: nowrap; }
+  .seen { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+
+  /* Trails */
+  .summary { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .ring { width: 54px; height: 54px; flex: none; }
+  .summary .big { font-size: 20px; font-weight: 700; }
+  .summary .sub { color: var(--muted); font-size: 12.5px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1.5px solid var(--line); background: #fff; border-radius: 999px; padding: 5px 12px 5px 9px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; color: var(--muted); transition: all .12s; }
+  .chip .count { font-weight: 500; opacity: .7; }
+  .chip.on { color: var(--ink); border-color: var(--c); background: color-mix(in srgb, var(--c) 8%, white); }
+  .chip:not(.on) .lvl { opacity: .35; }
+
+  .seg { display: inline-flex; background: #f0ede6; border-radius: 999px; padding: 3px; }
+  .seg button { border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; cursor: pointer; color: var(--muted); }
+  .seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+  .group-h { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 14px 4px 6px; }
+  .group-h .n { font-weight: 500; letter-spacing: 0; text-transform: none; }
+
+  .trail { display: grid; grid-template-columns: 28px 30px 1fr auto; align-items: center; gap: 8px; padding: 9px 6px; border-top: 1px solid #f1ede5; }
+  .trail:first-of-type { border-top: 0; }
+  .trail .num { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12.5px; text-align: right; }
+  .trail .name { font-weight: 600; }
+  .trail .grade { display: block; font-size: 11.5px; color: var(--muted); font-weight: 500; }
+  .trail.not-open .name { color: #8a8f8b; }
+  .spill { font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .spill.open { background: var(--open-bg); color: var(--open); }
+  .spill.hold { background: var(--hold-bg); color: var(--hold); }
+  .spill.closed { background: var(--closed-bg); color: var(--closed); }
+  .empty { text-align: center; color: var(--muted); padding: 24px 0 10px; }
+
+  /* Level icons */
+  .lvl { display: inline-flex; align-items: center; justify-content: center; gap: 1px; width: 22px; height: 16px; }
+  .lvl i { display: block; }
+  .lvl.green i { width: 13px; height: 13px; border-radius: 50%; background: var(--green); }
+  .lvl.blue i { width: 12px; height: 12px; border-radius: 2px; background: var(--blue); }
+  .lvl.black i { width: 10px; height: 10px; background: var(--black); transform: rotate(45deg); }
+  .lvl.black.double i { width: 8px; height: 8px; margin: 0 1px; }
+  .lvl.hike i { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid var(--hike); }
+
+  .skeleton { height: 14px; border-radius: 6px; background: linear-gradient(90deg, #eee 25%, #f6f6f6 50%, #eee 75%); background-size: 200% 100%; animation: sh 1.2s infinite; margin: 8px 0; }
+  @keyframes sh { to { background-position: -200% 0; } }
+
+  footer { text-align: center; color: var(--muted); font-size: 11.5px; margin-top: 8px; }
+  footer a { color: var(--forest-2); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Park &amp; trail status</div>
+    <h1>Christchurch Adventure Park</h1>
+    <div class="meta">
+      <span class="pill" id="updated">Loading…</span>
+      <span class="pill fire" id="fire" style="display:none"><span class="flame"></span><span></span></span>
+    </div>
+  </div>
+  <svg class="hills" viewBox="0 0 800 60" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 60 L0 38 C90 18 160 30 230 22 C320 12 380 36 470 28 C560 20 620 6 700 18 C750 25 780 30 800 28 L800 60 Z" fill="rgba(255,255,255,.07)"/>
+    <path d="M0 60 L0 48 C120 34 200 46 300 40 C420 32 500 48 620 40 C700 35 760 42 800 40 L800 60 Z" fill="#f4f1ea"/>
+  </svg>
+</header>
+
+<main class="wrap">
+  <div class="errors" id="errors"></div>
+
+  <section class="card" id="park-card">
+    <h2>Park</h2>
+    <div id="park"><div class="skeleton"></div><div class="skeleton" style="width:60%"></div></div>
+  </section>
+
+  <section class="card" id="update-card" style="display:none">
+    <h2>Daily update</h2>
+    <div id="update"></div>
+  </section>
+
+  <section class="card">
+    <h2>Trails</h2>
+    <div id="trail-summary"></div>
+    <div class="controls">
+      <div class="chips" id="chips"></div>
+      <div class="seg" id="seg">
+        <button data-v="open">Open only</button>
+        <button data-v="all">All trails</button>
+      </div>
+    </div>
+    <div id="trails"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton" style="width:70%"></div></div>
+  </section>
+
+  <footer>Data from <a href="https://christchurchadventurepark.com/park-status" target="_blank">park-status</a> and <a href="https://christchurchadventurepark.com/bike/trail-information" target="_blank">trail-information</a> — refreshed about every 20 minutes during park hours.</footer>
+</main>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * Constants (ported from cap_status.py)
+ * ------------------------------------------------------------------ */
+const PARK_URL = "https://christchurchadventurepark.com/park-status";
+const TRAIL_URL = "https://christchurchadventurepark.com/bike/trail-information";
+const CORE_ITEMS = new Set(["lift", "trails"]);
+const LEVELS = ["green", "blue", "black", "hike"];
+const LEVEL_NAMES = { green: "Green", blue: "Blue", black: "Black", hike: "Hike" };
+const LEVEL_COLOURS = { green: "#2e7d32", blue: "#1565c0", black: "#111111", hike: "#6d4c41" };
+const STATUS_LABELS = { open: "Open", hold: "On hold", closed: "Closed", unknown: "?" };
+const HEADINGS = "h1,h2,h3,h4";
+const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const DAY_NAMES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+/* ------------------------------------------------------------------ *
+ * Persisted view state
+ * ------------------------------------------------------------------ */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("cap." + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("cap." + k, JSON.stringify(v)); } catch {} },
+};
+const view = {
+  showAll: store.get("showAll", false),
+  levels: store.get("levels", { green: true, blue: true, black: true, hike: true }),
+  facilitiesOpen: store.get("facilitiesOpen", false),
+};
+let DATA = null;
+
+/* ------------------------------------------------------------------ *
+ * Parsing helpers
+ * ------------------------------------------------------------------ */
+const parseDoc = html => new DOMParser().parseFromString(html, "text/html");
+function visibleText(node) {
+  const p = node.parentElement ? node.parentElement.tagName.toLowerCase() : "";
+  return !["script", "style", "noscript", "title"].includes(p);
+}
+function classifyLevel(label) {
+  const t = (label || "").toLowerCase();
+  if (t.includes("begin") || t.includes("green")) return "green";
+  if (t.includes("intermed") || t.includes("blue")) return "blue";
+  if (t.includes("advanced") || t.includes("expert") || t.includes("pro") || t.includes("black")) return "black";
+  if (t.includes("hik") || t.includes("climb") || t.includes("uphill")) return "hike";
+  return null;
+}
+function gradeInfo(raw, level) {
+  const r = (raw || "").toLowerCase();
+  if (level === "black") {
+    if (r.includes("expert")) return { grade: "Double Black", double: true };
+    if (r.includes("pro")) return { grade: "Pro Line", double: true };
+    return { grade: "Black", double: false };
+  }
+  return { grade: LEVEL_NAMES[level], double: false };
+}
+function classifyStatus(img) {
+  const alt = (img.getAttribute("alt") || "").trim().toLowerCase();
+  const src = (img.getAttribute("src") || "").toLowerCase().split("/").pop();
+  for (const t of [alt, src]) {
+    if (!t) continue;
+    if (t.includes("hold")) return "hold";
+    if (t.includes("closed")) return "closed";
+    if (t.startsWith("open")) return "open";
+  }
+  return null;
+}
+
+/* Trail page: walk in document order — [difficulty icon] [number] [name] [status icon] */
+function parseTrails(html) {
+  const doc = parseDoc(html);
+  const trails = [], seen = new Set();
+  let current = null;
+  const w = doc.createTreeWalker(doc.documentElement, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  let node;
+  outer: while ((node = w.nextNode())) {
+    if (node.nodeType === 1) {
+      if (node.tagName.toLowerCase() !== "img") continue;
+      const status = classifyStatus(node);
+      if (status) {
+        if (current && current.name) {
+          const key = current.num + "|" + current.name;
+          if (!seen.has(key)) {
+            seen.add(key);
+            trails.push({ num: current.num, name: current.name, level: current.level, ...gradeInfo(current.raw, current.level), status });
+          }
+        }
+        current = null;
+        continue;
+      }
+      const raw = node.getAttribute("alt") || node.getAttribute("title");
+      const level = classifyLevel(raw);
+      if (level) current = { level, raw, num: null, name: null };
+    } else if (visibleText(node)) {
+      const text = node.nodeValue.trim();
+      if (!text) continue;
+      if (text.toLowerCase() === "trail difficulty") break outer;   // legend at the bottom
+      if (!current) continue;
+      if (current.num == null && current.name == null && /^\d+$/.test(text)) current.num = parseInt(text, 10);
+      else if (current.name == null) current.name = text;
+      else current.name += " " + text;
+    }
+  }
+
+  let fire = doc.querySelector("[data-fire-level]")?.getAttribute("data-fire-level") || null;
+  if (!fire) {
+    const texts = allTexts(doc).map(n => n.nodeValue.trim());
+    const i = texts.findIndex(t => /fire danger/i.test(t));
+    if (i >= 0 && i + 1 < texts.length) fire = texts[i + 1];
+  }
+  trails.sort((a, b) => LEVELS.indexOf(a.level) - LEVELS.indexOf(b.level) || (a.num ?? 999) - (b.num ?? 999));
+  return { trails, fire };
+}
+
+function allTexts(doc) {
+  const out = [], w = doc.createTreeWalker(doc.documentElement, NodeFilter.SHOW_TEXT);
+  let n; while ((n = w.nextNode())) if (visibleText(n) && n.nodeValue.trim()) out.push(n);
+  return out;
+}
+
+/* Park status page */
+const STATUS_WORD = /^(open|closed|on hold|hold|limited|delayed|paused)\b/i;
+const LABEL_AND_STATUS = /^(.+?)[\s:\-\u2013]+(open|closed|on hold)$/i;
+const DATE_LINE = /^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b.{0,40}\d{4}\s*$/i;
+const HOURS_RE = /\d{1,2}(?::\d{2})?\s*[ap]\.?m\.?\s*(?:-|\u2013|\u2014|to)\s*\d{1,2}(?::\d{2})?\s*[ap]\.?m\.?/gi;
+const DAY_RE = /\b(mon|tue|wed|thu|fri|sat|sun)[a-z]*\b/gi;
+
+function daysFromLabel(label) {
+  const found = [...label.matchAll(DAY_RE)].map(m => [DAY_NAMES.indexOf(m[1].toLowerCase()), m.index, m.index + m[0].length]);
+  if (!found.length) {
+    const low = label.toLowerCase();
+    if (low.includes("weekend")) return [5, 6];
+    if (low.includes("weekday")) return [0, 1, 2, 3, 4];
+    if (low.includes("7 days") || low.includes("daily")) return [0, 1, 2, 3, 4, 5, 6];
+    return [];
+  }
+  const days = new Set();
+  for (let i = 0; i < found.length;) {
+    const [d, , end] = found[i];
+    if (i + 1 < found.length && /^\s*(?:-|\u2013|\u2014|to|until)\s*$/i.test(label.slice(end, found[i + 1][1]))) {
+      const d2 = found[i + 1][0];
+      if (d2 >= d) for (let k = d; k <= d2; k++) days.add(k);
+      else { for (let k = d; k < 7; k++) days.add(k); for (let k = 0; k <= d2; k++) days.add(k); }
+      i += 2;
+    } else { days.add(d); i += 1; }
+  }
+  return [...days].sort();
+}
+function parseSchedule(text) {
+  const schedule = {}; let pos = 0;
+  for (const m of text.matchAll(HOURS_RE)) {
+    const label = text.slice(pos, m.index);
+    pos = m.index + m[0].length;
+    for (const d of daysFromLabel(label)) if (!(d in schedule)) schedule[d] = m[0];
+  }
+  return schedule;
+}
+
+function parseParkStatus(html) {
+  const doc = parseDoc(html);
+  const result = { items: [], update_title: null, update_lines: [], schedule: {} };
+  const nodes = allTexts(doc);
+  const texts = nodes.map(n => n.nodeValue.trim());
+
+  let start = texts.findIndex(t => t.toLowerCase().includes("current park status"));
+  if (start < 0) { const j = texts.findIndex(t => t.toLowerCase() === "lift"); start = j >= 0 ? j - 1 : -1; }
+  if (start < 0) return result;
+
+  result.schedule = parseSchedule(texts.slice(Math.max(0, start - 14), start).join(" "));
+
+  let label = null, dateIdx = null;
+  for (let j = start + 1; j < texts.length; j++) {
+    const t = texts[j];
+    if (DATE_LINE.test(t) || t.toLowerCase() === "forecast") { dateIdx = j; break; }
+    if (t.toLowerCase().startsWith("trail status")) break;
+    const cleaned = t.replace(/click for more info/gi, "").trim();
+    if (!cleaned) continue;
+    if (STATUS_WORD.test(cleaned)) { if (label) { result.items.push([label, cleaned]); label = null; } continue; }
+    const both = cleaned.match(LABEL_AND_STATUS);
+    if (both) { result.items.push([both[1].trim(), titleCase(both[2])]); label = null; }
+    else label = cleaned;
+  }
+
+  if (dateIdx != null) {
+    result.update_title = texts[dateIdx];
+    const dateOwner = nodes[dateIdx].parentElement?.closest(HEADINGS);
+    const lines = []; let prevBlock = null;
+    for (let k = dateIdx + 1; k < texts.length; k++) {
+      const owner = nodes[k].parentElement?.closest(HEADINGS);
+      if (owner && owner !== dateOwner) break;
+      if (texts[k].toLowerCase().startsWith("trail status")) break;
+      const block = nodes[k].parentElement?.closest("p,div,li");
+      if (lines.length && block === prevBlock) lines[lines.length - 1] += " " + texts[k];
+      else lines.push(texts[k]);
+      prevBlock = block;
+    }
+    result.update_lines = lines
+      .map(l => l.replace(/\s+([:,.!])/g, "$1").replace(/\s{2,}/g, " "))
+      .filter(l => !l.toLowerCase().includes("use the link") && !l.toLowerCase().startsWith("for updates on"));
+  }
+  return result;
+}
+const titleCase = s => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+/* "First seen" — the site only publishes a date, so remember when we first saw each version */
+function hash(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(16); }
+function firstSeen(title, text) {
+  const now = new Date();
+  const state = store.get("seen", {});
+  const key = hash(title + "|" + text);
+  if (!state[key]) {
+    state[key] = now.toISOString();
+    const keys = Object.keys(state).sort((a, b) => state[a].localeCompare(state[b]));
+    keys.slice(0, Math.max(0, keys.length - 30)).forEach(k => delete state[k]);
+    store.set("seen", state);
+  }
+  return new Date(state[key]);
+}
+
+function statusKey(text) {
+  const t = (text || "").toLowerCase();
+  if (t.startsWith("open")) return "open";
+  if (t.startsWith("closed")) return "closed";
+  return t ? "hold" : "unknown";
+}
+
+function updateAge(title, body) {
+  const m = (title || "").match(/(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+),?\s+(\d{4})/);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  if (m) {
+    const months = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+    const mi = months.indexOf(m[2].slice(0, 3).toLowerCase());
+    if (mi >= 0) {
+      const pub = new Date(+m[3], mi, +m[1]);
+      const days = Math.round((today - pub) / 86400000);
+      if (days === 0) return ["Today", "open"];
+      if (days === 1) return ["Yesterday · may be out of date", "hold"];
+      if (days > 1) return [`${days} days old · may be out of date`, "closed"];
+      return ["", ""];
+    }
+  }
+  const w = (body || "").match(/^\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
+  if (w) {
+    const todayName = WEEKDAYS[(new Date().getDay() + 6) % 7];
+    return w[1].toLowerCase() === todayName ? ["Matches today", "open"] : [`Says ${titleCase(w[1])} · may be out of date`, "hold"];
+  }
+  return ["", ""];
+}
+
+/* ------------------------------------------------------------------ *
+ * Load
+ * ------------------------------------------------------------------ */
+/* Used by build_cap_status.js: turn the two raw pages into the snapshot the page renders.
+   prev = the previous snapshot, so "first seen" survives between refreshes. */
+function buildSnapshot(parkHtml, trailHtml, prev) {
+  const out = { captured_at: new Date().toISOString(), park: null, trails: null, fire: null, errors: [] };
+  if (parkHtml) {
+    try {
+      const park = parseParkStatus(parkHtml);
+      if (park.items.length) {
+        if (park.update_title) {
+          park.update_key = hash(park.update_title + "|" + park.update_lines.join("\n"));
+          park.first_seen = prev?.park?.update_key === park.update_key && prev.park.first_seen ? prev.park.first_seen : out.captured_at;
+        }
+        out.park = park;
+      } else out.errors.push("Couldn't read the park status block (page layout may have changed).");
+    } catch (e) { out.errors.push(`Park status: unexpected error (${e.message}).`); }
+  } else out.errors.push("Park status: could not connect.");
+  if (trailHtml) {
+    try {
+      const { trails, fire } = parseTrails(trailHtml);
+      if (trails.length) { out.trails = trails; out.fire = fire; }
+      else out.errors.push("Couldn't read the trail list (page layout may have changed).");
+    } catch (e) { out.errors.push(`Trails: unexpected error (${e.message}).`); }
+  } else out.errors.push("Trails: could not connect.");
+  // keep the previous good data for any part that failed this time
+  if (!out.park && prev?.park) out.park = prev.park;
+  if (!out.trails && prev?.trails) { out.trails = prev.trails; out.fire = prev.fire; }
+  return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * Render
+ * ------------------------------------------------------------------ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const nice = l => (l === l.toUpperCase() ? titleCase(l) : l);
+const lvlIcon = (level, dbl) => `<span class="lvl ${level}${dbl ? " double" : ""}">${dbl ? "<i></i><i></i>" : "<i></i>"}</span>`;
+
+function renderPark() {
+  const park = DATA?.park;
+  if (!park) { $("park").innerHTML = `<div class="empty">No park status available.</div>`; $("update-card").style.display = "none"; return; }
+
+  const core = park.items.filter(([l]) => CORE_ITEMS.has(l.trim().toLowerCase()));
+  const fac = park.items.filter(([l]) => !CORE_ITEMS.has(l.trim().toLowerCase()));
+  const today = new Date();
+  const hours = park.schedule?.[(today.getDay() + 6) % 7];
+  const facOpen = fac.filter(([, t]) => statusKey(t) === "open").length;
+
+  $("park").innerHTML = `
+    <div class="tiles">
+      ${core.map(([l, t]) => { const k = statusKey(t); return `
+        <div class="tile ${k}"><span class="lbl">${esc(nice(l))}</span><span class="val"><span class="dot"></span>${esc(t)}</span></div>`; }).join("")}
+    </div>
+    ${hours ? `<div class="hours">
+      <svg class="clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span>Open today (${today.toLocaleDateString("en-NZ", { weekday: "long" })}) &nbsp;<b>${esc(hours)}</b></span></div>` : ""}
+    ${fac.length ? `<details class="facilities" ${view.facilitiesOpen ? "open" : ""}>
+      <summary>Facilities · ${facOpen} of ${fac.length} open</summary>
+      <div class="fac-list">${fac.map(([l, t]) => { const k = statusKey(t); return `
+        <div class="fac"><span>${esc(nice(l))}</span><span class="status-txt ${k}"><span class="dot"></span>${esc(t)}</span></div>`; }).join("")}
+      </div></details>` : ""}`;
+  const det = document.querySelector("details.facilities");
+  if (det) det.addEventListener("toggle", () => { view.facilitiesOpen = det.open; store.set("facilitiesOpen", det.open); });
+
+  // Daily update
+  const title = park.update_title;
+  if (!title && !park.update_lines?.length) { $("update-card").style.display = "none"; return; }
+  $("update-card").style.display = "";
+  const [ageText, ageKey] = updateAge(title, park.update_lines?.[0]);
+  const body = (park.update_lines || []).map((ln, i) => {
+    const f = ln.match(/^forecast\s*:?\s*(.*)$/i);
+    if (f) return `<div class="forecast"><b>☁ Forecast</b><span>${esc(f[1])}</span></div>`;
+    return `<p class="${i === 0 && /park is|open|closed/i.test(ln) ? "lead" : ""}">${esc(ln)}</p>`;
+  }).join("");
+  const seen = park.first_seen ? new Date(park.first_seen) : null;
+  $("update").innerHTML = `
+    <div class="upd-head"><span class="upd-title">${esc(title || "Latest update")}</span>${ageText ? `<span class="badge ${ageKey}">${esc(ageText)}</span>` : ""}</div>
+    <div class="upd-body">${body || "<p>No daily update found.</p>"}</div>
+    ${seen ? `<div class="seen">First seen here ${seen.toLocaleString("en-NZ", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · the site publishes the date only</div>` : ""}`;
+}
+
+function renderChips() {
+  const trails = DATA?.trails || [];
+  $("chips").innerHTML = LEVELS.map(l => {
+    const n = trails.filter(t => t.level === l && (view.showAll || t.status === "open")).length;
+    return `<button class="chip ${view.levels[l] ? "on" : ""}" data-l="${l}" style="--c:${LEVEL_COLOURS[l]}">${lvlIcon(l)}${LEVEL_NAMES[l]} <span class="count">${n}</span></button>`;
+  }).join("");
+  $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => {
+    view.levels[b.dataset.l] = !view.levels[b.dataset.l]; store.set("levels", view.levels); renderTrails();
+  });
+  $("seg").querySelectorAll("button").forEach(b => b.classList.toggle("on", (b.dataset.v === "all") === view.showAll));
+}
+
+function renderTrails() {
+  renderChips();
+  const trails = DATA?.trails;
+  if (!trails) { $("trails").innerHTML = `<div class="empty">No trail data available.</div>`; $("trail-summary").innerHTML = ""; return; }
+
+  const open = trails.filter(t => t.status === "open").length;
+  const hold = trails.filter(t => t.status === "hold").length;
+  const closed = trails.filter(t => t.status === "closed").length;
+  const total = trails.length, C = 2 * Math.PI * 22;
+  const seg = (n, off, col) => `<circle cx="27" cy="27" r="22" fill="none" stroke="${col}" stroke-width="6" stroke-dasharray="${(n / total) * C} ${C}" stroke-dashoffset="${-off / total * C}" transform="rotate(-90 27 27)"/>`;
+  $("trail-summary").innerHTML = `<div class="summary">
+      <svg class="ring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" fill="none" stroke="#eee" stroke-width="6"/>
+        ${seg(open, 0, "var(--open)")}${seg(hold, open, "var(--hold)")}${seg(closed, open + hold, "var(--closed)")}</svg>
+      <div><div class="big">${open} of ${total} trails open</div>
+      <div class="sub">${hold ? `${hold} on hold · ` : ""}${closed ? `${closed} closed` : "none closed"}</div></div></div>`;
+
+  const shown = trails.filter(t => view.levels[t.level] && (view.showAll || t.status === "open"));
+  if (!shown.length) { $("trails").innerHTML = `<div class="empty">No trails match these filters.</div>`; return; }
+
+  $("trails").innerHTML = LEVELS.filter(l => shown.some(t => t.level === l)).map(l => {
+    const rows = shown.filter(t => t.level === l);
+    return `<div class="group-h">${lvlIcon(l)}${LEVEL_NAMES[l]} <span class="n">· ${rows.length}</span></div>` +
+      rows.map(t => `<div class="trail ${t.status === "open" ? "" : "not-open"}">
+        <span class="num">${t.num ?? ""}</span>${lvlIcon(t.level, t.double)}
+        <span class="name">${esc(t.name)}${t.level === "black" ? `<span class="grade">${esc(t.grade)}</span>` : ""}</span>
+        <span class="spill ${t.status}">${STATUS_LABELS[t.status]}</span></div>`).join("");
+  }).join("");
+}
+
+function renderHeader(errors, fresh) {
+  $("updated").textContent = fresh
+    ? `Updated ${new Date().toLocaleTimeString("en-NZ", { weekday: "long", hour: "numeric", minute: "2-digit" })}`
+    : (DATA?.trails ? "Showing last successful data" : "Couldn't load");
+  const fire = DATA?.fire;
+  if (fire) {
+    const f = $("fire"); f.style.display = "";
+    f.className = "pill fire " + fire.toLowerCase().split(/\s+/)[0];
+    f.lastElementChild.textContent = `Fire danger: ${titleCase(fire)}`;
+  }
+  $("errors").style.display = errors.length ? "block" : "none";
+  $("errors").textContent = errors.join("\n");
+}
+
+function render() { renderPark(); renderTrails(); }
+
+$("seg").querySelectorAll("button").forEach(b => b.onclick = () => {
+  view.showAll = b.dataset.v === "all"; store.set("showAll", view.showAll); renderTrails();
+});
+
+/* ------------------------------------------------------------------ */
+/* Snapshot data is written into the page by build_cap_status.js (run on a schedule).
+   Artifacts can't reach the park's website directly, so the page shows the latest snapshot. */
+const SNAPSHOT = /*SNAPSHOT*/{"captured_at":"2026-11-21T21:29:09.974Z","park":{"items":[["LIFT","Open"],["TRAILS","Open"],["Uphill Track","Open"],["Zipline Check-In","Open"],["Treehouse Cafe & Bar","Open"],["Workshop","Open"],["Guest Services and Retail","Open"]],"update_title":"Sunday 22nd November, 2026","update_lines":["PARK OPEN - 9.00am - 5.00pm","With some well needed rain yesterday, the park is back open and ready for an epic day of riding!","It's race day here at the park, expect to see some traffic around.","Trails will be running sweet for this afternoon, so come on in and make the most of it!","Looking ahead to Monday: Lift scheduled to open at 10am with last chair at 5pm","A mild, fine Monday with cloud clearing throughout the morning before becoming sunny for the afternoon. Light winds in the morning, with northeasterlies picking up during the afternoon and evening. A great day to get out and ride, particularly later in the day when the sun comes out. Expect temperatures to reach a warm 27°C at the base, although the breeze may make things feel a little cooler on the hill."],"schedule":{"0":"10am - 5pm","1":"10am - 5pm","2":"10am - 7pm","3":"10am - 7pm","4":"10am - 7pm","5":"9am - 5pm","6":"9am - 5pm"},"update_key":"4eb96630","first_seen":"2026-11-21T21:29:09.039Z"},"trails":[{"num":1,"name":"Bridging the Gap","level":"green","grade":"Green","double":false,"status":"open"},{"num":2,"name":"Duncans Donuts","level":"green","grade":"Green","double":false,"status":"open"},{"num":3,"name":"Active Rest","level":"green","grade":"Green","double":false,"status":"open"},{"num":4,"name":"Non-Compliant","level":"green","grade":"Green","double":false,"status":"open"},{"num":5,"name":"Green Gums","level":"green","grade":"Green","double":false,"status":"open"},{"num":6,"name":"Snakeobs","level":"green","grade":"Green","double":false,"status":"open"},{"num":7,"name":"Piddly Sticks","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":8,"name":"Summit Connection","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":9,"name":"Flying Nun","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":10,"name":"Choir Boy","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":11,"name":"Locomotion","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":12,"name":"Loess Rider","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":13,"name":"Bako Run","level":"blue","grade":"Blue","double":false,"status":"hold"},{"num":14,"name":"Down Low","level":"blue","grade":"Blue","double":false,"status":"hold"},{"num":15,"name":"Omnishambles","level":"blue","grade":"Blue","double":false,"status":"hold"},{"num":16,"name":"Rere Pia","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":17,"name":"Loose Connections","level":"blue","grade":"Blue","double":false,"status":"hold"},{"num":18,"name":"Askins","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":19,"name":"Toka","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":22,"name":"Gung Ho","level":"blue","grade":"Blue","double":false,"status":"closed"},{"num":23,"name":"Vic Park Connector","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":49,"name":"Skills Area","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":52,"name":"Pump Track","level":"blue","grade":"Blue","double":false,"status":"open"},{"num":24,"name":"Captain Cook","level":"black","grade":"Black","double":false,"status":"open"},{"num":25,"name":"Shredzilla","level":"black","grade":"Black","double":false,"status":"open"},{"num":26,"name":"Pork & Pūhā","level":"black","grade":"Black","double":false,"status":"open"},{"num":27,"name":"Up & Out","level":"black","grade":"Black","double":false,"status":"closed"},{"num":28,"name":"Choccy Milk","level":"black","grade":"Black","double":false,"status":"closed"},{"num":29,"name":"Double Vision","level":"black","grade":"Black","double":false,"status":"closed"},{"num":31,"name":"Pick 'n' Mix","level":"black","grade":"Black","double":false,"status":"closed"},{"num":32,"name":"Legalized","level":"black","grade":"Black","double":false,"status":"closed"},{"num":33,"name":"Five X","level":"black","grade":"Black","double":false,"status":"closed"},{"num":34,"name":"SMC","level":"black","grade":"Black","double":false,"status":"closed"},{"num":35,"name":"Rake 'n' Bake","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":36,"name":"Phoenix","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":37,"name":"3rd Base","level":"black","grade":"Double Black","double":true,"status":"open"},{"num":38,"name":"Kama Sutra","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":39,"name":"Gizza Go","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":40,"name":"Addiction","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":41,"name":"Throw the Goat/Yoda","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":42,"name":"Wasabi","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":43,"name":"Community Transmission","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":44,"name":"GC","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":45,"name":"Black Jandals","level":"black","grade":"Double Black","double":true,"status":"closed"},{"num":46,"name":"O-Zone","level":"black","grade":"Black","double":false,"status":"open"},{"num":47,"name":"The Mulchy","level":"black","grade":"Pro Line","double":true,"status":"closed"},{"num":50,"name":"Walking Loop Trail","level":"hike","grade":"Hike","double":false,"status":"open"},{"num":51,"name":"Hiking Trail/Climb Trail","level":"hike","grade":"Hike","double":false,"status":"open"}],"fire":"moderate","errors":[]}/*END*/;
+(() => {
+  if (!SNAPSHOT) { renderHeader(["No snapshot has been captured yet."], false); render(); return; }
+  DATA = SNAPSHOT;
+  const at = new Date(SNAPSHOT.captured_at);
+  const mins = Math.round((Date.now() - at) / 60000);
+  const ago = mins < 1 ? "just now" : mins < 60 ? `${mins} min ago` : mins < 1440 ? `${Math.round(mins / 60)} h ago` : `${Math.round(mins / 1440)} days ago`;
+  renderHeader(SNAPSHOT.errors || [], false);
+  $("updated").textContent = `Checked ${at.toLocaleString("en-NZ", { weekday: "short", hour: "numeric", minute: "2-digit" })} · ${ago}`;
+  if (mins > 180) $("updated").style.background = "rgba(255,183,77,.35)";
+  render();
+})();
+</script>
+</body>
+</html>
