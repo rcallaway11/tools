@@ -3,7 +3,7 @@ name: Refresh CAP status
 on:
   schedule:
     # Every 20 min, roughly 8am-9pm NZ time (times are UTC)
-    - cron: "*/20 0-8,19-23 * * *"
+        - cron: "7,27,47 0-8,19-23 * * *"
   workflow_dispatch:        # adds a "Run workflow" button for an instant refresh
 
 permissions:
