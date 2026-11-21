@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pizza Calculator</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pizza">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#17120F">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+:root{--bg:#17120F;--card:#231C17;--field:#2E251F;--border:#44362C;--text:#F5E9DC;--muted:#B8A593;--orange:#FF8A3D;--red:#E63946;--yellow:#FFC94D;--green:#7BC96F;--btn:#1A0F08}
+[data-theme=light]{--bg:#FBF4EA;--card:#FFFFFF;--field:#F5EBDD;--border:#E0CDB5;--text:#2B1D14;--muted:#7A6652;--orange:#E8641A;--red:#D1303D;--yellow:#A86A00;--green:#3E8E41;--btn:#FFFFFF}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  padding:env(safe-area-inset-top) max(14px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1240px;margin:0 auto}
+header{display:flex;align-items:center;gap:14px;padding:14px 2px 6px}
+header svg{width:64px;height:64px;flex:none}
+h1.brand{margin:0;font-size:clamp(28px,7vw,46px);font-weight:900;letter-spacing:1px;line-height:1.05;
+  background:linear-gradient(90deg,#FFB300,#FF7A2F 45%,#E63946 80%,#FF3D81);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(2px 2px 0 rgba(0,0,0,.25))}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.tabs{display:flex;gap:8px;margin:12px 0;overflow-x:auto;scrollbar-width:none}
+.tabs button{flex:none;background:var(--field);color:var(--muted);border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+.tabs button.on{background:var(--orange);color:var(--btn)}
+.page{display:none}.page.on{display:block}
+.calc{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.calc>*{min-width:0}
+@media(max-width:420px){.tabs button{padding:9px 11px;font-size:14px}}
+@media(min-width:900px){.calc{grid-template-columns:400px minmax(0,1fr);align-items:start}.settings{position:sticky;top:12px}}
+.card{background:var(--card);border-radius:16px;padding:14px 16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
+.lbl{display:block;color:var(--yellow);font-weight:700;font-size:14px;margin-bottom:4px}
+select,input[type=text],input[type=datetime-local]{width:100%;background:var(--field);border:2px solid var(--border);border-radius:10px;padding:8px 10px;min-height:42px;outline:none;-webkit-appearance:none;appearance:none}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--text) 50%),linear-gradient(135deg,var(--text) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+select:focus,input:focus{border-color:var(--orange)}
+.step{display:flex;align-items:stretch;background:var(--field);border:2px solid var(--border);border-radius:10px;min-height:42px;overflow:hidden}
+.step:focus-within{border-color:var(--orange)}
+.step input{flex:1;min-width:0;width:100%;background:transparent;border:0;outline:none;text-align:center;padding:6px 0;font-weight:600}
+.step .u{align-self:center;color:var(--muted);font-size:13px;padding-right:4px}
+.step button{flex:none;width:38px;border:0;background:transparent;font-size:20px;cursor:pointer;color:var(--muted)}
+.step button:active{background:var(--border)}
+.hint{color:var(--muted);font-size:13px;margin-top:2px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;background:var(--field);border:2px solid var(--border);border-radius:10px;padding:9px 4px;font-weight:700;cursor:pointer}
+.seg button.on{background:var(--orange);color:var(--btn);border-color:var(--orange)}
+.seg button:disabled{background:transparent;color:var(--border);border-color:var(--field);cursor:not-allowed}
+.chk{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--yellow);cursor:pointer;user-select:none}
+.chk input{-webkit-appearance:none;appearance:none;width:22px;height:22px;flex:none;border-radius:6px;border:2px solid var(--border);background:var(--field);margin:0;cursor:pointer;display:grid;place-content:center}
+.chk input:checked{background:var(--orange);border-color:var(--orange)}
+.chk input:checked::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg)}
+.make{width:100%;border:0;border-radius:14px;padding:14px;font-size:18px;font-weight:800;color:#fff;cursor:pointer;background:linear-gradient(90deg,var(--orange),var(--red))}
+.make:active{filter:brightness(1.1)}
+.ghost{background:transparent;border:2px solid var(--border);border-radius:10px;padding:7px 12px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.ghost:hover{border-color:var(--green);color:var(--green)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.bar select{width:auto;flex:1 1 180px;min-height:38px;padding:6px 30px 6px 10px}
+#hints{margin:12px 0;font-size:14px}
+.warn{color:var(--orange)}.ok{color:var(--green)}.mut{color:var(--muted)}
+#result h2{color:var(--yellow);font-size:24px;margin:4px 0 8px}
+#result h3{color:var(--orange);font-size:20px;margin:20px 0 8px}
+.sum{color:var(--muted);font-size:14px;margin:0;padding-left:18px}
+.note{font-size:14px;margin:8px 0}
+table.ing{width:100%;border-collapse:collapse;background:var(--card);border-radius:12px;overflow:hidden;margin-bottom:10px}
+table.ing td{padding:7px 12px;font-size:14px;vertical-align:top}
+table.ing td.a{text-align:right;color:var(--yellow);font-weight:700}
+table.ing th{text-align:left;color:var(--green);font-size:16px;padding:10px 12px 4px}
+.ev{background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.ev .t{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;font-weight:700}
+.ev .w{color:var(--muted);font-size:13px;font-weight:400}
+.ev .w b{color:var(--yellow)}
+.ev p{margin:4px 0 0;font-size:14px}
+.tl{background:var(--card);border-radius:14px;padding:12px 14px;margin:12px 0}
+.tl-bars{display:flex;gap:2px}
+.tl-seg{min-width:3px;overflow:hidden}
+.tl-seg .n{display:block;color:var(--muted);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;height:16px}
+.tl-seg .b{display:flex;align-items:center;justify-content:center;height:34px;border-radius:7px;color:#fff;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden}
+.tl-ends{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-top:6px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--muted);font-size:12px;margin-top:6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.placeholder h2{color:var(--yellow)}.placeholder{color:var(--muted)}
+.lib-top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px}
+.lib-top p{flex:1 1 260px;margin:0}
+.lib-top .make{width:auto;padding:11px 18px;font-size:16px}
+.pz{margin-bottom:10px;padding:8px 14px}
+.pz .row{display:flex;align-items:center;gap:8px}
+.pz .head{flex:1;text-align:left;background:none;border:0;font-size:16px;font-weight:700;padding:8px 2px;cursor:pointer}
+.pz .head small{color:var(--muted);font-weight:400}
+.pz ul{color:var(--muted);margin:2px 0 6px;padding-left:52px}
+.shop .card{margin-bottom:10px}
+#shopList .chk{color:var(--text);font-weight:400;font-size:15px;padding:6px 0}
+#shopList .chk:has(input:checked){color:var(--muted);text-decoration:line-through}
+.shop h4{color:var(--yellow);margin:0 0 4px;font-size:14px}
+dialog{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:16px;padding:18px;width:min(460px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog .btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+dialog .btns .make{flex:1;width:auto;font-size:16px;padding:11px}
+dialog input[type=text]{margin-bottom:8px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(120px);background:var(--card);border:1px solid var(--border);
+  color:var(--text);padding:10px 16px;border-radius:12px;transition:transform .25s;z-index:9;max-width:90vw;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+#toast.on{transform:translateX(-50%) translateY(0)}
+@media print{
+  :root,[data-theme]{--bg:#fff;--card:#F6EEE2;--field:#F5EBDD;--border:#E0CDB5;--text:#2B1D14;--muted:#7A6652;--orange:#E8641A;--red:#D1303D;--yellow:#A86A00;--green:#3E8E41}
+  .no-print,.settings,.tabs,.bar,header .sub{display:none!important}
+  .calc{display:block}.page{display:none!important}#p-calc{display:block!important}
+  body{padding:0}.ev,table.ing,.tl{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <svg viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r="50" fill="#D98A3D"/><circle cx="50" cy="50" r="42" fill="#FFC94D"/>
+    <g fill="#D43A2F"><circle cx="32.5" cy="35" r="8.5"/><circle cx="65" cy="31" r="7.5"/><circle cx="70" cy="57.5" r="8.5"/><circle cx="47.5" cy="55" r="8"/><circle cx="29" cy="67.5" r="7"/><circle cx="56" cy="75" r="6.5"/></g>
+    <g fill="#EE6A55"><circle cx="29.95" cy="32.45" r="2.98"/><circle cx="62.75" cy="28.75" r="2.63"/><circle cx="67.45" cy="54.95" r="2.98"/><circle cx="45.1" cy="52.6" r="2.8"/><circle cx="26.9" cy="65.4" r="2.45"/><circle cx="54.05" cy="73.05" r="2.28"/></g>
+    <g fill="#5FB35A"><ellipse cx="44" cy="25" rx="6" ry="3" transform="rotate(35 44 25)"/><ellipse cx="75" cy="47.5" rx="6" ry="3" transform="rotate(35 75 47.5)"/><ellipse cx="25" cy="50" rx="6" ry="3" transform="rotate(35 25 50)"/></g>
+    <g stroke="#D98A3D" stroke-width="2"><line x1="8" y1="50" x2="92" y2="50"/><line x1="29" y1="13.63" x2="71" y2="86.37"/><line x1="71" y1="13.63" x2="29" y2="86.37"/></g>
+  </svg>
+  <div><h1 class="brand">Pizza Calculator</h1><div class="sub">Poolish, hydration and fermentation timing, worked out for you</div></div>
+</header>
+
+<nav class="tabs no-print">
+  <button data-tab="calc" class="on">🧮 Calculator</button>
+  <button data-tab="lib">📖 Pizza Library</button>
+  <button data-tab="shop">🛒 Shopping List</button>
+</nav>
+
+<!-- ================= CALCULATOR ================= -->
+<section id="p-calc" class="page on">
+ <div class="calc">
+  <div class="card settings">
+   <div class="grid">
+    <div class="full"><label class="lbl" for="flour">🌾 Flour</label><select id="flour"></select></div>
+    <div class="full"><label class="lbl" for="style">🍴 Pizza style</label><select id="style"></select></div>
+    <div><span class="lbl">⚖️ Ball size</span><div class="step" data-id="ball" data-min="50" data-max="1500" data-step="5" data-dp="0" data-unit="g"></div></div>
+    <div><span class="lbl">🍕 Pizzas</span><div class="step" data-id="count" data-min="1" data-max="100" data-step="1" data-dp="0" data-unit=""></div></div>
+    <div><span class="lbl">💧 Hydration</span><div class="step" data-id="hyd" data-min="50" data-max="90" data-step="0.5" data-dp="1" data-unit="%"></div></div>
+    <div><span class="lbl" title="Biggest amount of dough your mixer or bowl can handle in one go">🥣 Max per mix</span><div class="step" data-id="capacity" data-min="500" data-max="20000" data-step="250" data-dp="0" data-unit="g"></div></div>
+    <div class="full hint" id="hydHint"></div>
+    <div class="full"><span class="lbl">⏱️ Time until serving</span>
+      <div class="seg" id="modes"><button data-mode="same">12-14 hrs</button><button data-mode="24">24 hrs</button><button data-mode="48">48 hrs</button></div></div>
+    <div class="full"><span class="lbl">🌡️ Ball ferment</span>
+      <label class="chk"><input type="checkbox" id="cold" checked> 🧊 Cold-ferment balls in the fridge</label>
+      <div class="hint" id="fermentHint"></div></div>
+    <div><span class="lbl">🏠 Room temp</span><div class="step" data-id="room" data-min="5" data-max="40" data-step="0.5" data-dp="1" data-unit="°C"></div></div>
+    <div><span class="lbl">🧊 Fridge temp</span><div class="step" data-id="fridge" data-min="0" data-max="12" data-step="0.5" data-dp="1" data-unit="°C"></div></div>
+    <div class="full"><label class="lbl" for="yeast">🧬 Yeast type</label><select id="yeast"></select></div>
+    <div class="full"><label class="chk"><input type="checkbox" id="useClock"> 🕕 Set a serving date and time</label>
+      <input type="datetime-local" id="serve" disabled style="margin-top:6px"></div>
+   </div>
+   <div id="hints"></div>
+   <button class="make" id="makeBtn">🍕 Make recipe</button>
+  </div>
+
+  <div>
+   <div class="bar no-print">
+    <select id="presetBox"></select>
+    <button class="ghost" id="savePreset">💾 Save preset</button>
+    <button class="ghost" id="delPreset" title="Delete the selected preset">🗑</button>
+    <button class="ghost" id="copyBtn">📋 Copy</button>
+    <button class="ghost" id="shareBtn" hidden>📤 Share</button>
+    <button class="ghost" id="printBtn">🖨️ Print / PDF</button>
+    <button class="ghost" id="fbBtn" title="Tell the app how the last dough turned out to tune the yeast">🎯 Feedback</button>
+    <button class="ghost" id="themeBtn"></button>
+   </div>
+   <div id="result"></div>
+  </div>
+ </div>
+</section>
+
+<!-- ================= LIBRARY ================= -->
+<section id="p-lib" class="page">
+  <div class="lib-top"><p class="mut">Tap a pizza to see what you need to buy (dough not included). Tick the box to add it to your Shopping List.</p>
+  <button class="make" id="addPizzaBtn">➕ Add pizza</button></div>
+  <div id="libList"></div>
+</section>
+
+<!-- ================= SHOPPING ================= -->
+<section id="p-shop" class="page shop">
+  <div class="bar">
+    <label class="chk" style="flex:1 1 260px"><input type="checkbox" id="shopDough"> 🍞 Include dough ingredients (from your Calculator settings)</label>
+    <button class="ghost" id="copyList">📋 Copy list</button>
+    <button class="ghost" id="untick">↺ Untick all</button>
+  </div>
+  <div id="shopList"></div>
+</section>
+</div>
+
+<dialog id="fbDlg">
+  <div id="fbInfo"></div>
+  <select id="fbSel" style="margin-top:12px"></select>
+  <div class="btns"><button class="make" id="fbApply">Update calibration</button><button class="ghost" id="fbReset">Reset this mode</button><button class="ghost" id="fbClose">Close</button></div>
+</dialog>
+
+<dialog id="addDlg">
+  <span class="lbl">Pizza name</span><input type="text" id="addTitle" placeholder="e.g. Spicy Salami and Honey">
+  <span class="lbl">Ingredients (not the dough)</span><div id="addRows"></div>
+  <button class="ghost" id="addRow">＋ Add ingredient</button>
+  <div id="addErr" class="warn" style="margin-top:8px"></div>
+  <div class="btns"><button class="make" id="addSave">Save pizza</button><button class="ghost" id="addCancel">Cancel</button></div>
+</dialog>
+
+<div id="toast"></div>
+
+<script id="engine">
+// ==========================================================================
+// Data tables (ported from pizza_calculator_V4.py)
+// ==========================================================================
+const HONEY_PCT_OF_POOLISH = 1.67;
+const K_YEAST = 4.3;
+const DIRECT_FACTOR = 0.8;
+const K_YEAST_ROOM = 3.09;
+const POOLISH_FRAC_ROOM = 300 / 1550;
+const ROOM_MODES = ["same", "24"];
+const YEAST_FACTORS = {"Dried active yeast": 1.0, "Instant yeast": 0.75, "Fresh yeast": 2.5};
+const MODES = {"same": "Same day (12-14 hrs)", "24": "24 hrs", "48": "48 hrs"};
+const MODE_HOURS = {"same": 13.0, "24": 24.0, "48": 48.0};
+
+const FLOURS = {
+  "Caputo Classic 00 (blue bag)":            {label: "00 flour", hyd: [58, 65], max_h: 36, yeast: 1.0},
+  "Caputo Pizzeria 00 (red bag, W260-280)":  {label: "00 flour", hyd: [60, 70], max_h: 60, yeast: 1.0},
+  "Polselli 00 All Purpose":                 {label: "00 flour", hyd: [58, 65], max_h: 30, yeast: 1.0},
+  "00 standard (other brands)":              {label: "00 flour", hyd: [58, 66], max_h: 48, yeast: 1.0},
+  "00 strong (other brands)":                {label: "00 flour", hyd: [60, 70], max_h: 60, yeast: 1.0},
+  "Manitoba / very strong (W300+)":          {label: "Manitoba flour", hyd: [62, 78], max_h: 72, yeast: 1.0},
+  "Bread flour (12-13% protein)":            {label: "bread flour", hyd: [60, 72], max_h: 60, yeast: 1.0},
+};
+const DEFAULT_FLOUR = "Caputo Classic 00 (blue bag)";
+
+const STYLES = {
+  "Custom (my recipe)": {ball: null, hyd: null, salt: 2.6, oil: 0.0, flour: null},
+  "Neapolitan":         {ball: 250, hyd: 62.0, salt: 2.8, oil: 0.0, flour: "Caputo Pizzeria 00 (red bag, W260-280)"},
+  "New York":           {ball: 340, hyd: 63.0, salt: 2.0, oil: 2.0, flour: "Bread flour (12-13% protein)"},
+  "Pan / Detroit":      {ball: 400, hyd: 72.0, salt: 2.2, oil: 3.0, flour: "Bread flour (12-13% protein)"},
+};
+const DEFAULT_STYLE = "Custom (my recipe)";
+
+const FEEDBACK = [
+  ["Very under-proofed (dense, pale, tight)", 1.30],
+  ["Slightly under-proofed", 1.12],
+  ["Perfect", 1.00],
+  ["Slightly over-proofed", 0.88],
+  ["Very over-proofed (slack, sticky, grey, tears)", 0.70],
+];
+
+const PHASE_STYLE = {
+  poolish_room:   ["Poolish, room", "#FF8A3D"],
+  poolish_fridge: ["Poolish, fridge", "#4C9BE8"],
+  mix:            ["Mix", "#E63946"],
+  bulk:           ["Bulk", "#F2B134"],
+  balls_fridge:   ["Balls, fridge", "#2F78C4"],
+  warm:           ["Warm-up", "#6DBE62"],
+};
+
+const DEFAULT_TOPPINGS = [
+  {title: "Chicken Cranberry Brie", ingredients: ["Cooked chicken breast", "Brie", "Cranberry sauce", "Mozzarella", "Red onion", "Fresh thyme", "Olive oil"]},
+  {title: "Pepperoni Hot Honey", ingredients: ["Tomato pizza sauce", "Mozzarella", "Pepperoni", "Hot honey", "Chilli flakes"]},
+  {title: "Potato, Ricotta, Rosemary", ingredients: ["Potatoes", "Ricotta", "Fresh rosemary", "Olive oil", "Garlic", "Sea salt"]},
+  {title: "Margherita", ingredients: ["Tomato pizza sauce", "Fresh mozzarella", "Fresh basil", "Olive oil", "Sea salt"]},
+  {title: "Prosciutto and Rocket", ingredients: ["Tomato pizza sauce", "Mozzarella", "Prosciutto", "Rocket", "Parmesan", "Olive oil"]},
+  {title: "BBQ Chicken", ingredients: ["BBQ sauce", "Mozzarella", "Cooked chicken breast", "Red onion", "Fresh coriander"]},
+  {title: "Mushroom and Truffle", ingredients: ["Mushrooms", "Mozzarella", "Garlic", "Fresh thyme", "Truffle oil", "Parmesan"]},
+  {title: "Four Cheese", ingredients: ["Mozzarella", "Gorgonzola", "Parmesan", "Ricotta", "Olive oil"]},
+  {title: "Hawaiian", ingredients: ["Tomato pizza sauce", "Mozzarella", "Ham", "Pineapple"]},
+  {title: "Meat Lovers", ingredients: ["Tomato pizza sauce", "Mozzarella", "Pepperoni", "Italian sausage", "Bacon", "Ham"]},
+];
+
+// ==========================================================================
+// Recipe engine
+// ==========================================================================
+const activity = t => 2 ** ((t - 20.0) / 9.0);
+const roomTime = (base, room, lo, hi) => Math.max(lo, Math.min(hi, base * 2 ** ((20.0 - room) / 9.0)));
+
+function fmtDur(hours) {
+  const mins = Math.round(hours * 60 / 5.0) * 5;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (h && m) return `${h} h ${m} min`;
+  return h ? `${h} h` : `${m} min`;
+}
+const calibKey = (mode, cold = true) => cold ? mode : `${mode}_room`;
+function calibLabel(key) {
+  const base = key.replace("_room", "");
+  return (MODES[base] || base) + (key.endsWith("_room") ? ", room-temp ferment" : "");
+}
+function fmtNum(x, dp) { return x.toLocaleString("en-US", {minimumFractionDigits: dp, maximumFractionDigits: dp}); }
+function g(x, dp) {
+  if (dp === undefined) dp = x >= 10 ? 0 : (x >= 2 ? 1 : 2);
+  return `${fmtNum(x, dp)} g`;
+}
+const num = x => String(parseFloat(Number(x).toFixed(4)));   // like Python's :g
+const P = (key, hours, temp) => ({key, hours, temp});
+
+function buildPhases(mode, room, fridge, totalH, cold = true) {
+  const warnings = [];
+  let phases;
+  if (!cold) {
+    const mix = mode === "24" ? 0.5 : 0.75;
+    const warm = roomTime(2.0, room, 1.0, 3.5);
+    if (mode === "same") {
+      phases = [P("mix", mix, room), P("bulk", Math.max(0.5, totalH - mix - warm), room)];
+    } else {
+      const bulk = roomTime(1.0, room, 0.5, 2.0);
+      const poolFridge = Math.max(0.0, totalH - 1.0 - mix - bulk - warm);
+      phases = [P("poolish_room", 1.0, room), P("poolish_fridge", poolFridge, fridge),
+                P("mix", mix, room), P("bulk", bulk, room)];
+    }
+    phases.push(P("warm", warm, room));
+    return [phases, warnings];
+  }
+  let warm;
+  if (mode === "same") {
+    const mix = 0.75, bulk = roomTime(3.0, room, 1.5, 4.5);
+    warm = roomTime(2.5, room, 1.5, 4.0);
+    phases = [P("mix", mix, room), P("bulk", bulk, room)];
+  } else {
+    const poolFridge = mode === "48" ? 17.0 : 9.0;
+    const mix = 0.75, bulk = roomTime(1.25, room, 0.75, 2.5);
+    warm = roomTime(3.0, room, 1.5, 4.5);
+    phases = [P("poolish_room", 1.0, room), P("poolish_fridge", poolFridge, fridge),
+              P("mix", mix, room), P("bulk", bulk, room)];
+  }
+  let coldH = totalH - phases.reduce((a, x) => a + x.hours, 0) - warm;
+  if (coldH < 0) {
+    warnings.push("At this room temperature the room-temp steps need more time than the " +
+                  "chosen schedule allows, so the plan runs slightly longer than requested.");
+    coldH = 0.0;
+  } else if (mode === "same" && coldH < 1.0) {
+    warnings.push("Very little time is left for a cold hold at this room temperature; " +
+                  "keep the dough balls covered at room temp.");
+  }
+  phases.push(P("balls_fridge", coldH, fridge));
+  phases.push(P("warm", warm, room));
+  return [phases, warnings];
+}
+
+function makeRecipe(p) {
+  const cf = p.cold_ferment;
+  const mode = (cf || ROOM_MODES.includes(p.mode)) ? p.mode : "24";
+  const totalH = MODE_HOURS[mode];
+  const [phases, warnings] = buildPhases(mode, p.room, p.fridge, totalH, cf);
+  const ph = Object.fromEntries(phases.map(x => [x.key, x]));
+  const poolish = mode === "24" || mode === "48";
+  const fl = FLOURS[p.flour], st = STYLES[p.style];
+  const FL = fl.label, FLc = FL[0].toUpperCase() + FL.slice(1);
+  const saltPct = st.salt, oilPct = st.oil;
+
+  // yeast % of flour (dried-yeast equivalent)
+  const eq = phases.reduce((a, x) => a + activity(x.temp) * x.hours, 0);
+  const calib = (p.calib || {})[calibKey(mode, cf)] ?? 1.0;
+  let yAdy = (cf ? K_YEAST : K_YEAST_ROOM) / eq * (poolish ? 1.0 : DIRECT_FACTOR) * fl.yeast * calib;
+  yAdy = Math.max(0.03, Math.min(1.5, yAdy));
+  const yFrac = yAdy / 100.0 * YEAST_FACTORS[p.yeast_type];
+
+  // solve flour so the sum of ingredients = total dough weight
+  const h = p.hydration / 100.0, s = saltPct / 100.0, o = oilPct / 100.0;
+  let pf = 0.0, honeyFrac = 0.0;
+  if (poolish) {
+    pf = mode === "24" ? 0.25 : 0.194;
+    if (!cf) pf = POOLISH_FRAC_ROOM;
+    honeyFrac = pf * HONEY_PCT_OF_POOLISH / 100.0;
+  }
+  const doughTotal = p.ball_g * p.balls;
+  const flour = doughTotal / (1 + h + s + o + yFrac + honeyFrac);
+  const water = flour * h, salt = flour * s, oil = flour * o;
+  const yeast = flour * yFrac, honey = flour * honeyFrac;
+
+  // batches (mixer limit)
+  const N = Math.max(1, Math.ceil(doughTotal / Math.max(p.capacity, 100) - 1e-9));
+  const k = 1.0 / N;
+  const [flourB, waterB, saltB, oilB, yeastB, honeyB] = [flour, water, salt, oil, yeast, honey].map(x => x * k);
+  const yname = p.yeast_type.toLowerCase();
+  const batchNote = N > 1 ? ` Repeat for all ${N} batches.` : "";
+  const suffix = N > 1 ? ` (per batch, make ${N})` : "";
+  const totalActual = phases.reduce((a, x) => a + x.hours, 0);
+
+  // sanity warnings
+  const [loH, hiH] = fl.hyd;
+  if (p.hydration > hiH) {
+    warnings.push(`${num(p.hydration)}% hydration is above the usual ceiling (${hiH}%) for ${p.flour}. ` +
+                  `Expect a slack, sticky dough; lower it or use a stronger flour.`);
+  } else if (p.hydration < loH) {
+    warnings.push(`${num(p.hydration)}% hydration is below the usual range (${loH}-${hiH}%) for ${p.flour}. ` +
+                  `The dough will be tight and the crumb tighter.`);
+  }
+  if (totalActual > fl.max_h) {
+    warnings.push(`A ${fmtDur(totalActual)} schedule is long for ${p.flour} (about ${fl.max_h} h is the limit). ` +
+                  `It may turn weak and sticky; pick a stronger flour or a shorter time.`);
+  }
+  if (mode === "48" && p.fridge > 5) {
+    warnings.push(`A ${num(p.fridge)} C fridge is warm for a 48 hr ferment. Dough may over-proof; check it early or choose 24 hrs.`);
+  } else if (p.fridge > 7) {
+    warnings.push("Your fridge is warm (above 7 C), so fermentation will run faster than planned.");
+  }
+  if (p.fridge < 1) warnings.push("A fridge near freezing slows fermentation a lot; the calibration may under-estimate yeast.");
+  if (p.room > 27) warnings.push("A warm room (above 27 C) ferments fast; shorten room steps and watch the dough, not the clock.");
+  else if (p.room < 15) warnings.push("A cold room (below 15 C) slows the room-temp steps; allow extra time and watch the dough.");
+  if (!cf && p.room > 24) {
+    warnings.push(`A ${num(p.room)} C room is warm for a room-temp ball ferment; the dough will move quickly. ` +
+                  `Watch the dough, or tick the fridge option for a safer schedule.`);
+  }
+  if (yeastB < 0.3) {
+    warnings.push(`Only ${yeastB.toFixed(2)} g of yeast per batch is too small to weigh accurately. Use the yeast water trick shown in the recipe.`);
+  }
+  if (p.ball_g < 180 || p.ball_g > 450) {
+    warnings.push(`A ${num(p.ball_g)} g ball is outside the usual 180-450 g range; check your bake plan.`);
+  }
+
+  const strategy = cf ? (poolish ? "poolish + cold-fermented balls" : "direct dough with a cold hold")
+                      : (poolish ? "poolish + room-temp ferment" : "direct dough, room-temp ferment");
+  const summary = [
+    `${p.balls} x ${num(p.ball_g)} g dough balls = ${fmtNum(doughTotal, 0)} g of dough`,
+    `Flour ${fmtNum(flour, 0)} g - ${p.flour}  |  water ${fmtNum(water, 0)} g (${num(p.hydration)}% hydration)`,
+    `Salt ${num(saltPct)}%  |  oil ${num(oilPct)}%  |  yeast ${yAdy.toFixed(2)}% of flour (dried equivalent)`,
+    `Style: ${p.style}  |  strategy: ${strategy}  |  schedule ${fmtDur(totalActual)}`,
+  ];
+  if (calib !== 1.0) summary.push(`Yeast calibration x${calib.toFixed(2)} applied from your feedback`);
+  if (N > 1) summary.push(`Mixer limit: split into ${N} identical batches of ${fmtNum(doughTotal / N, 0)} g dough. Amounts below are per batch.`);
+
+  const yeastTip = yeastB < 1.0 ? ` (tiny amount: dissolve 1 g yeast in 100 g water and use ${(yeastB * 101).toFixed(1)} g of that mix)` : "";
+  const oilRow = oil > 0 ? [["Olive oil (in the dough)", g(oilB)], ["Olive oil", "extra for hands and containers"]]
+                         : [["Olive oil", "for hands and containers"]];
+  const oilTxt = oil > 0 ? ` and ${g(oilB)} olive oil` : "";
+  const oilPot = "about 15 ml olive oil, plus extra for your hands";
+
+  const folds = [];
+  let foldT = 30;
+  while (foldT < ph.bulk.hours * 60 - 10 && folds.length < 3) { folds.push(foldT); foldT += 30; }
+  let foldTxt = "";
+  if (folds.length) {
+    const labels = folds.map(f => `${f} min`);
+    const joined = labels.length === 1 ? labels[0] : labels.slice(0, -1).join(", ") + " and " + labels[labels.length - 1];
+    foldTxt = `Do a stretch and fold at ${joined} into the bulk.`;
+  }
+  if (!cf && !poolish) foldTxt += " Judge by the dough, not the clock: it should be roughly doubled, domed and bubbly.";
+
+  const ev = [];
+  const E = (elapsed, title, icon, text) => ev.push({elapsed, title, icon, text});
+  let t = 0.0, ingredients;
+  if (poolish) {
+    const pw = flourB * pf, pfl = pw;
+    const finWater = waterB - pw, finFlour = flourB - pfl;
+    ingredients = [
+      [`Poolish${suffix}`, [["Room-temp water", g(pw)], [p.yeast_type, g(yeastB) + yeastTip],
+                            ["Honey", g(honeyB, 1)], [FLc, g(pfl)]]],
+      [`Final dough${suffix}`, [["Poolish", "all of it"], ["Water (22-24 C)", g(finWater)],
+                                [`${FLc}, half + half`, `${g(finFlour)}  (${g(finFlour / 2)} + ${g(finFlour / 2)})`],
+                                ["Sea salt", g(saltB)], ...oilRow, ["Semolina", "optional, for lining trays"]]],
+    ];
+    E(t, "Mix the poolish", "🥣",
+      `In an airtight container stir ${g(pw)} water, ${g(yeastB)} ${yname} and ${g(honeyB, 1)} honey ` +
+      `until the honey dissolves${yeastTip}. Add ${g(pfl)} ${FL} and mix well. Leave 1 h at room temp.${batchNote}`);
+    t += ph.poolish_room.hours;
+    E(t, "Poolish into the fridge", "❄️",
+      `Refrigerate at ${num(p.fridge)} C for about ${fmtDur(ph.poolish_fridge.hours)}. ` +
+      "It is ready when domed and bubbly with a yeasty, slightly tangy smell.");
+    t += ph.poolish_fridge.hours;
+    E(t, "Mix the final dough", "💪",
+      `Take the poolish straight from the fridge (no need to warm it). In a large bowl dissolve it ` +
+      `in ${g(finWater)} water at 22-24 C. Add ${g(finFlour / 2)} ${FL} and mix, then ${g(saltB)} salt` +
+      `${oilTxt} and mix well, then the remaining ${g(finFlour / 2)} ${FL} to a shaggy dough. ` +
+      `Knead or fold by hand for about 10 min, then cover and rest 15 min. If the dough feels stiff, ` +
+      `hold back about 50 g of water and work it in after the rest.${batchNote}`);
+    t += ph.mix.hours;
+    E(t, "Ball up and bulk ferment", "🫓",
+      `With oiled hands fold the dough into a smooth ball, tucking the edges under. Put it in an ` +
+      `oiled airtight tub (${oilPot}). Bulk at room temp (${num(p.room)} C) for ${fmtDur(ph.bulk.hours)}. ${foldTxt}`);
+    t += ph.bulk.hours;
+  } else {
+    ingredients = [[`Dough${suffix}`, [
+      ["Water (room temp)", g(waterB)], [p.yeast_type, g(yeastB) + yeastTip],
+      [`${FLc}, half + half`, `${g(flourB)}  (${g(flourB / 2)} + ${g(flourB / 2)})`],
+      ["Sea salt", g(saltB)], ...oilRow, ["Semolina", "optional, for lining trays"]]]];
+    E(t, "Mix and knead", "🥣",
+      `Whisk ${g(yeastB)} ${yname} into ${g(waterB)} water${yeastTip}. Add ${g(flourB / 2)} ${FL} and ` +
+      `mix, then ${g(saltB)} salt${oilTxt}, then the remaining ${g(flourB / 2)} ${FL} to a shaggy dough. ` +
+      `Knead for 10-15 min until smooth, then rest 20 min covered.${batchNote}`);
+    t += ph.mix.hours;
+    E(t, "Fold and bulk ferment", "🫓",
+      `Fold the dough over itself a few times into a ball and put it in an oiled airtight tub ` +
+      `(${oilPot}). Bulk at room temp (${num(p.room)} C) for ${fmtDur(ph.bulk.hours)}. ${foldTxt}`);
+    t += ph.bulk.hours;
+  }
+
+  const shapeTxt = `Turn the dough out onto the bench` + (N > 1 ? " (all batches)" : "") +
+    ` and cut and shape ${p.balls} balls of ${num(p.ball_g)} g, handling them gently to keep the air in. ` +
+    `Place them in lightly oiled lidded containers (or on semolina-lined trays under a cover) with room to double.`;
+  const readyTxt = "They should be domed, 1.5-2x their size, with bubbles visible at the base. " +
+                   "A floured finger poke should spring back slowly.";
+  if (!cf) {
+    E(t, "Shape the dough balls, rest at room temp", "🍕",
+      shapeTxt + ` Cover and rest at room temp (${num(p.room)} C) for about ${fmtDur(ph.warm.hours)}. ${readyTxt} Spare balls can be frozen at this point if needed.`);
+    t += ph.warm.hours;
+  } else {
+    const coldH = ph.balls_fridge.hours;
+    if (coldH >= 0.5) E(t, "Shape the dough balls, then fridge", "🍕", shapeTxt + ` Refrigerate at ${num(p.fridge)} C for about ${fmtDur(coldH)}.`);
+    else E(t, "Shape the dough balls", "🍕", shapeTxt + " Leave covered at room temp.");
+    t += coldH;
+    E(t, "Take the balls out of the fridge", "🌡️",
+      `Leave them covered at room temp (${num(p.room)} C) for about ${fmtDur(ph.warm.hours)}. ${readyTxt}`);
+    t += ph.warm.hours;
+  }
+  E(Math.max(t - 1.0, 0), "Preheat the oven", "🔥", "Heat the oven and stone or steel to maximum, about 1 h before baking.");
+  E(t, "Stretch, top and bake", "🍽️", "Dinner is served.");
+
+  const shop = [[p.flour, g(flour)], ["Sea salt", g(salt)], [p.yeast_type, g(yeast)]];
+  if (poolish) shop.push(["Honey", g(honey, 1)]);
+  shop.push(["Olive oil", oil > 0 ? g(oil) + " for the dough, plus extra" : "for hands and containers"]);
+  shop.push(["Semolina", "optional, for lining trays"]);
+  const title = `${MODES[mode]} (${cf ? "fridge" : "room-temp"} ferment)`;
+  return {mode, title, summary, ingredients, events: ev, phases, total_hours: totalActual, warnings,
+          batches: N, shopping: shop, cold_ferment: cf};
+}
+
+// ==========================================================================
+// Rendering helpers
+// ==========================================================================
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const pad = n => String(n).padStart(2, "0");
+const fmtClock = d => `${DAYS[d.getDay()]} ${pad(d.getDate())} ${MONTHS[d.getMonth()]}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const fmtShort = d => `${DAYS[d.getDay()]} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+function whenLabels(ev, total, serve) {
+  let rel = ev.elapsed < 0.01 ? "Start" : `${fmtDur(total - ev.elapsed)} before serving`;
+  if (ev.elapsed >= total - 0.01) rel = "Serving time";
+  let clock = null;
+  if (serve) {
+    const dt = new Date(serve.getTime() - (total - ev.elapsed) * 3600e3);
+    dt.setSeconds(0, 0);
+    dt.setMinutes(dt.getMinutes() + ((60 - dt.getMinutes()) % 5));
+    clock = fmtClock(dt);
+  }
+  return [rel, clock];
+}
+
+function renderText(r, serve) {
+  const out = [`PIZZA CALCULATOR - ${r.title}`, ""];
+  out.push(...r.summary.map(s => `- ${s}`), "");
+  out.push(...r.warnings.map(w => `NOTE: ${w}`));
+  out.push("INGREDIENTS");
+  for (const [heading, rows] of r.ingredients) {
+    out.push(`${heading}:`);
+    out.push(...rows.map(([n, a]) => `  ${n}: ${a}`));
+  }
+  out.push("", "SCHEDULE");
+  for (const ev of r.events) {
+    const [rel, clock] = whenLabels(ev, r.total_hours, serve);
+    out.push(`[${rel}${clock ? ", " + clock : ""}] ${ev.title}`);
+    out.push(`   ${ev.text}`);
+  }
+  return out.join("\n");
+}
+</script>
+
+<script>
+// ==========================================================================
+// App state (saved in this browser / home-screen app)
+// ==========================================================================
+const STORE_KEY = "pizzaCalc.v1";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+
+let S = {};
+try { S = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { S = {}; }
+const st = {
+  calib: Object.assign({same: 1, "24": 1, "48": 1, same_room: 1, "24_room": 1}, S.calibration || {}),
+  history: S.history || [],
+  presets: S.presets || {},
+  custom: S.custom_toppings || [],
+  selected: new Set(S.selected_toppings || []),
+  shopChecked: new Set(S.shop_checked || []),
+  shopDough: S.shop_dough !== undefined ? !!S.shop_dough : true,
+  theme: S.theme === "light" ? "light" : "dark",
+  mode: "48",
+  dateEdited: false,
+  recipe: null,
+  lastServe: null,
+  openPizzas: new Set(),
+};
+
+function saveAll() {
+  const d = {inputs: getInputs(), calibration: st.calib, history: st.history, presets: st.presets, theme: st.theme,
+             custom_toppings: st.custom, selected_toppings: [...st.selected].sort(),
+             shop_checked: [...st.shopChecked].sort(), shop_dough: st.shopDough};
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(d)); } catch (e) {}
+}
+
+let toastTimer;
+function toast(msg, ms = 3000) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("on"), ms);
+}
+
+// ---------- build controls ----------
+function fillSelect(sel, items) { sel.innerHTML = items.map(x => `<option>${esc(x)}</option>`).join(""); }
+fillSelect($("flour"), Object.keys(FLOURS));
+fillSelect($("style"), Object.keys(STYLES));
+fillSelect($("yeast"), Object.keys(YEAST_FACTORS));
+fillSelect($("fbSel"), FEEDBACK.map(f => f[0]));
+
+const steppers = {};
+document.querySelectorAll(".step").forEach(el => {
+  const o = {id: el.dataset.id, min: +el.dataset.min, max: +el.dataset.max, step: +el.dataset.step, dp: +el.dataset.dp};
+  el.innerHTML = `<button type="button" aria-label="less">−</button><input id="${o.id}" inputmode="decimal" autocomplete="off">` +
+                 (el.dataset.unit ? `<span class="u">${el.dataset.unit}</span>` : "") + `<button type="button" aria-label="more">+</button>`;
+  const inp = el.querySelector("input"), [minus, plus] = el.querySelectorAll("button");
+  const clamp = v => Math.min(o.max, Math.max(o.min, v));
+  o.get = () => { const v = parseFloat(String(inp.value).replace(",", ".")); return isNaN(v) ? o.val : clamp(v); };
+  o.set = v => { o.val = clamp(+(+v).toFixed(o.dp)); inp.value = o.dp ? o.val.toFixed(o.dp) : String(o.val); };
+  const bump = d => { o.set(Math.round((o.get() + d * o.step) / o.step) * o.step); onChange(); };
+  minus.onclick = () => bump(-1);
+  plus.onclick = () => bump(1);
+  inp.addEventListener("input", () => { const v = parseFloat(inp.value); if (!isNaN(v)) { o.val = clamp(v); onChange(); } });
+  inp.addEventListener("blur", () => { o.set(o.get()); onChange(); });
+  steppers[o.id] = o;
+});
+const val = id => steppers[id].get();
+
+// ---------- inputs ----------
+function getInputs() {
+  return {flour: $("flour").value, style: $("style").value, ball: val("ball"), count: val("count"), hyd: val("hyd"),
+          capacity: val("capacity"), mode: st.mode, room: val("room"), fridge: val("fridge"),
+          yeast: $("yeast").value, cold: $("cold").checked};
+}
+function setInputs(d) {
+  const D = {flour: DEFAULT_FLOUR, style: DEFAULT_STYLE, ball: 325, count: 4, hyd: 64.5, capacity: 3500,
+             mode: "48", room: 19, fridge: 3, yeast: "Dried active yeast", cold: true};
+  d = Object.assign({}, D, d || {});
+  $("cold").checked = !!d.cold;
+  if (d.flour in FLOURS) $("flour").value = d.flour;
+  if (d.style in STYLES) $("style").value = d.style;
+  if (d.yeast in YEAST_FACTORS) $("yeast").value = d.yeast;
+  for (const k of ["ball", "count", "hyd", "capacity", "room", "fridge"]) steppers[k].set(d[k]);
+  setMode(d.mode, false);
+  refreshHints();
+}
+function params() {
+  return {ball_g: val("ball"), balls: Math.round(val("count")), hydration: val("hyd"), mode: st.mode,
+          room: val("room"), fridge: val("fridge"), yeast_type: $("yeast").value, flour: $("flour").value,
+          style: $("style").value, capacity: val("capacity"), cold_ferment: $("cold").checked, calib: {...st.calib}};
+}
+const ckey = () => calibKey(st.mode, $("cold").checked);
+
+function setMode(key, refresh = true) {
+  if (!(key in MODES)) key = "48";
+  if (key === "48" && !$("cold").checked) key = "24";
+  st.mode = key;
+  document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.dataset.mode === key));
+  updateFermentUI();
+  if (!st.dateEdited) updateDefaultDate();
+  if (refresh) onChange();
+}
+function updateFermentUI() {
+  const cold = $("cold").checked, b48 = document.querySelector('#modes [data-mode="48"]');
+  b48.disabled = !cold;
+  b48.title = cold ? "" : "48 hrs needs the dough balls in the fridge";
+  $("fermentHint").textContent = cold
+    ? "Balls spend most of the time in the fridge: best flavour and the most flexible timing."
+    : "Balls ferment at room temp, like your PDF recipe: poolish overnight, then about 4 h on the day. Available for 12-14 hrs and 24 hrs.";
+}
+function refreshHints() {
+  const fl = FLOURS[$("flour").value];
+  $("hydHint").textContent = `Suggested for this flour: ${fl.hyd[0]}-${fl.hyd[1]}% hydration, up to about ${fl.max_h} h.`;
+  const r = makeRecipe(params());
+  const parts = [];
+  if (r.warnings.length) {
+    const more = r.warnings.length > 1 ? ` (+${r.warnings.length - 1} more in the recipe)` : "";
+    parts.push(`<span class="warn">⚠️ ${esc(r.warnings[0])}${more}</span>`);
+  } else parts.push(`<span class="ok">✅ Settings look good.</span>`);
+  const c = st.calib[ckey()] ?? 1;
+  if (Math.abs(c - 1) > 0.005) parts.push(`<span class="mut">🎯 Yeast calibration for this mode: x${c.toFixed(2)}</span>`);
+  $("hints").innerHTML = parts.join("<br>");
+}
+function toLocalInput(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function updateDefaultDate() {
+  const now = new Date(), target = new Date(now);
+  target.setHours(18, 0, 0, 0);
+  while (target < new Date(now.getTime() + (MODE_HOURS[st.mode] + 1) * 3600e3)) target.setDate(target.getDate() + 1);
+  $("serve").value = toLocalInput(target);
+}
+function serveDt() {
+  if (!$("useClock").checked || !$("serve").value) return null;
+  const d = new Date($("serve").value);
+  return isNaN(d) ? null : d;
+}
+function onChange() { refreshHints(); saveAll(); }
+
+// ---------- recipe ----------
+function placeholder() {
+  return `<div class="card placeholder"><h2>Ready when you are</h2>
+    <p>Choose your flour, style, ball size, number of pizzas, hydration and how long you have, then press <b style="color:var(--orange)">Make recipe</b>.</p>
+    <p>Add a serving date and time to get clock times for every step. After you bake, press <b>Feedback</b> so the app can tune the yeast to your kitchen.</p></div>`;
+}
+function timelineHTML(r, serve) {
+  const total = r.phases.reduce((a, x) => a + x.hours, 0) || 1;
+  const raw = r.phases.map(x => Math.max(0.012, x.hours / total));
+  const sum = raw.reduce((a, b) => a + b, 0);
+  const segs = r.phases.map((x, i) => {
+    let [name, col] = PHASE_STYLE[x.key];
+    if (r.mode === "same" && x.key === "balls_fridge") name = "Cold hold";
+    if (!r.cold_ferment && x.key === "warm") name = "Balls rest";
+    return `<div class="tl-seg" style="width:${(raw[i] / sum * 100).toFixed(3)}%" title="${name}: ${fmtDur(x.hours)}">
+      <span class="n">${name}</span><span class="b" style="background:${col}">${fmtDur(x.hours)}</span></div>`;
+  }).join("");
+  let s = "Start", e = "Serve";
+  if (serve) { s = "Start  " + fmtShort(new Date(serve.getTime() - total * 3600e3)); e = "Serve  " + fmtShort(serve); }
+  const leg = [["Fridge", "#4C9BE8"], ["Room temp", "#FF8A3D"], ["Warm-up / rest", "#6DBE62"]]
+    .map(([l, c]) => `<span><i style="background:${c}"></i>${l}</span>`).join("");
+  return `<div class="tl"><div class="tl-bars">${segs}</div><div class="tl-ends"><span>${s}</span><span>${e}</span></div><div class="legend">${leg}</div></div>`;
+}
+function fitTimeline() {   // hide labels that don't fit their bar
+  document.querySelectorAll(".tl-seg").forEach(seg => {
+    seg.querySelectorAll(".n,.b").forEach(el => {
+      el.style.color = "";
+      if (el.scrollWidth > el.clientWidth + 1) el.style.color = "transparent";
+    });
+  });
+}
+function renderRecipe() {
+  const r = st.recipe, serve = st.lastServe;
+  if (!r) { $("result").innerHTML = placeholder(); return; }
+  const h = [`<h2>Your recipe: ${esc(r.title)}</h2><ul class="sum">${r.summary.map(l => `<li>${esc(l)}</li>`).join("")}</ul>`];
+  if (serve && serve.getTime() - r.total_hours * 3600e3 < Date.now())
+    h.push(`<p class="note" style="color:var(--red)"><b>Heads up:</b> the start time for this plan is already in the past. Choose a later serving time or a shorter schedule.</p>`);
+  for (const w of r.warnings) h.push(`<p class="note warn"><b>Note:</b> ${esc(w)}</p>`);
+  h.push(timelineHTML(r, serve));
+  h.push(`<h3>Ingredients</h3>`);
+  for (const [heading, rows] of r.ingredients) {
+    h.push(`<table class="ing"><tr><th colspan="2">${esc(heading)}</th></tr>` +
+           rows.map(([n, a]) => `<tr><td>${esc(n)}</td><td class="a">${esc(a)}</td></tr>`).join("") + `</table>`);
+  }
+  h.push(`<h3>Schedule</h3>`);
+  for (const ev of r.events) {
+    const [rel, clock] = whenLabels(ev, r.total_hours, serve);
+    h.push(`<div class="ev"><div class="t"><span>${ev.icon} ${esc(ev.title)}</span><span class="w">${rel}${clock ? ` &nbsp;<b>${clock}</b>` : ""}</span></div><p>${esc(ev.text)}</p></div>`);
+  }
+  $("result").innerHTML = h.join("");
+  fitTimeline();
+}
+function make(scroll = true) {
+  st.recipe = makeRecipe(params());
+  st.lastServe = serveDt();
+  renderRecipe();
+  saveAll();
+  if (scroll && window.innerWidth < 900) $("result").scrollIntoView({behavior: "smooth", block: "start"});
+}
+const recipeText = () => { if (!st.recipe) make(false); return renderText(st.recipe, st.lastServe); };
+
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove();
+  }
+  toast(msg);
+}
+
+// ---------- presets ----------
+function reloadPresets(select = "") {
+  const box = $("presetBox");
+  box.innerHTML = `<option value="">📁 Saved presets</option>` +
+    Object.keys(st.presets).sort().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  box.value = select;
+}
+$("presetBox").onchange = () => {
+  const n = $("presetBox").value;
+  if (n && st.presets[n]) { setInputs(st.presets[n]); make(); }
+};
+$("savePreset").onclick = () => {
+  const name = (prompt("Preset name (e.g. Saturday party, 12 balls):") || "").trim();
+  if (!name) return;
+  st.presets[name] = getInputs(); reloadPresets(name); saveAll(); toast(`Preset '${name}' saved`);
+};
+$("delPreset").onclick = () => {
+  const n = $("presetBox").value;
+  if (n && st.presets[n] && confirm(`Delete '${n}'?`)) { delete st.presets[n]; reloadPresets(); saveAll(); }
+};
+
+// ---------- feedback ----------
+function refreshFbInfo() {
+  const c = st.calib[ckey()] ?? 1;
+  const hist = st.history.slice(-3).map(e => `${esc(e.date)}  ${esc(calibLabel(e.mode))}: ${esc(e.result)}`);
+  $("fbInfo").innerHTML = `<b>${calibLabel(ckey())}</b> yeast calibration: x${c.toFixed(2)}<br>
+    <span class="mut">Under-proofed doughs are dense, tight and pale. Over-proofed doughs are slack, sticky, grey and tear when stretched.</span>` +
+    (hist.length ? "<br><br>Recent:<br>" + hist.join("<br>") : "");
+}
+$("fbBtn").onclick = () => { $("fbSel").selectedIndex = 2; refreshFbInfo(); $("fbDlg").showModal(); };
+$("fbClose").onclick = () => $("fbDlg").close();
+$("fbReset").onclick = () => { st.calib[ckey()] = 1; saveAll(); refreshHints(); refreshFbInfo(); };
+$("fbApply").onclick = () => {
+  const [label, mult] = FEEDBACK[$("fbSel").selectedIndex], key = ckey();
+  const nv = Math.max(0.4, Math.min(2.5, (st.calib[key] ?? 1) * mult));
+  st.calib[key] = nv;
+  const d = new Date();
+  st.history.push({date: `${pad(d.getDate())} ${MONTHS[d.getMonth()]}`, mode: key, result: label.split(" (")[0], calib: Math.round(nv * 1000) / 1000});
+  st.history = st.history.slice(-30);
+  saveAll(); refreshHints(); refreshFbInfo();
+  if (st.recipe) make(false);
+  toast(`Yeast calibration for ${calibLabel(key)} is now x${nv.toFixed(2)}`, 5000);
+};
+
+// ---------- theme ----------
+function applyTheme() {
+  document.documentElement.dataset.theme = st.theme;
+  document.querySelector('meta[name="theme-color"]').content = st.theme === "dark" ? "#17120F" : "#FBF4EA";
+  $("themeBtn").textContent = st.theme === "dark" ? "☀️ Light" : "🌙 Dark";
+}
+$("themeBtn").onclick = () => { st.theme = st.theme === "dark" ? "light" : "dark"; applyTheme(); saveAll(); };
+
+// ---------- library ----------
+const allToppings = () => DEFAULT_TOPPINGS.map(t => ({...t, custom: false})).concat(st.custom.map(t => ({...t, custom: true})));
+function renderLibrary() {
+  $("libList").innerHTML = allToppings().map((t, i) => {
+    const open = st.openPizzas.has(t.title);
+    return `<div class="card pz" data-i="${i}"><div class="row">
+      <label class="chk"><input type="checkbox" data-act="sel" ${st.selected.has(t.title) ? "checked" : ""} title="Add to shopping list"></label>
+      <button class="head" data-act="open">${open ? "▾" : "▸"}&nbsp; ${esc(t.title)} &nbsp;<small>(${t.ingredients.length} ingredients)</small></button>
+      ${t.custom ? `<button class="ghost" data-act="del" title="Delete this pizza">🗑</button>` : ""}</div>
+      ${open ? `<ul>${t.ingredients.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div>`;
+  }).join("");
+}
+$("libList").addEventListener("click", e => {
+  const act = e.target.closest("[data-act]"); if (!act) return;
+  const t = allToppings()[+act.closest(".pz").dataset.i];
+  if (act.dataset.act === "open") { st.openPizzas.has(t.title) ? st.openPizzas.delete(t.title) : st.openPizzas.add(t.title); renderLibrary(); }
+  else if (act.dataset.act === "sel") { act.checked ? st.selected.add(t.title) : st.selected.delete(t.title); saveAll(); }
+  else if (act.dataset.act === "del" && confirm(`Delete '${t.title}'?`)) {
+    st.custom = st.custom.filter(x => x.title !== t.title); st.selected.delete(t.title); saveAll(); renderLibrary();
+  }
+});
+function addRow() {
+  const n = $("addRows").children.length + 1;
+  const inp = document.createElement("input"); inp.type = "text"; inp.placeholder = `Ingredient ${n}`;
+  $("addRows").appendChild(inp); return inp;
+}
+$("addPizzaBtn").onclick = () => {
+  $("addTitle").value = ""; $("addRows").innerHTML = ""; $("addErr").textContent = "";
+  for (let i = 0; i < 3; i++) addRow();
+  $("addDlg").showModal(); $("addTitle").focus();
+};
+$("addRow").onclick = () => addRow().focus();
+$("addCancel").onclick = () => $("addDlg").close();
+$("addSave").onclick = () => {
+  const t = $("addTitle").value.trim();
+  const ings = [...$("addRows").querySelectorAll("input")].map(i => i.value.trim()).filter(Boolean);
+  const existing = new Set(allToppings().map(x => x.title.toLowerCase()));
+  const msg = !t ? "Please give the pizza a name." : existing.has(t.toLowerCase()) ? "A pizza with that name already exists."
+            : !ings.length ? "Add at least one ingredient." : "";
+  if (msg) { $("addErr").textContent = msg; return; }
+  st.custom.push({title: t, ingredients: ings}); st.openPizzas.add(t);
+  saveAll(); renderLibrary(); $("addDlg").close();
+};
+
+// ---------- shopping ----------
+let shopItems = [];
+function renderShop() {
+  shopItems = [];
+  const sections = [];
+  const sel = allToppings().filter(t => st.selected.has(t.title));
+  if (sel.length) {
+    const merged = new Map();
+    for (const t of sel) for (const ing of t.ingredients) {
+      const k = ing.trim().toLowerCase();
+      if (!merged.has(k)) merged.set(k, [ing.trim(), []]);
+      merged.get(k)[1].push(t.title);
+    }
+    const items = [...merged].map(([k, [name, used]]) => ["t:" + k, name + (used.length > 1 ? `    (${used.join(", ")})` : "")]);
+    sections.push(["🍕 Toppings for: " + sel.map(t => t.title).join(", "), items]);
+  }
+  if (st.shopDough) {
+    const r = makeRecipe(params());
+    sections.push([`🍞 Dough (${Math.round(val("count"))} x ${num(val("ball"))} g balls)`,
+                   r.shopping.map(([n, a]) => ["d:" + n.toLowerCase(), `${n}  -  ${a}`])]);
+  }
+  if (!sections.length) { $("shopList").innerHTML = `<p class="mut">Nothing here yet. Tick a pizza in the Pizza Library to add its ingredients.</p>`; return; }
+  $("shopList").innerHTML = sections.map(([head, items]) => `<div class="card"><h4>${esc(head)}</h4>` +
+    items.map(([k, text]) => { shopItems.push([k, text]);
+      return `<label class="chk"><input type="checkbox" data-k="${esc(k)}" ${st.shopChecked.has(k) ? "checked" : ""}> ${esc(text)}</label>`; }).join("") + `</div>`).join("");
+}
+$("shopList").addEventListener("change", e => {
+  const k = e.target.dataset.k; if (k === undefined) return;
+  e.target.checked ? st.shopChecked.add(k) : st.shopChecked.delete(k); saveAll();
+});
+$("shopDough").onchange = () => { st.shopDough = $("shopDough").checked; saveAll(); renderShop(); };
+$("untick").onclick = () => { shopItems.forEach(([k]) => st.shopChecked.delete(k)); saveAll(); renderShop(); };
+$("copyList").onclick = () => copyText("SHOPPING LIST\n" + shopItems.map(([k, t]) => (st.shopChecked.has(k) ? "[x] " : "[ ] ") + t).join("\n"), "Shopping list copied");
+
+// ---------- tabs ----------
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + b.dataset.tab));
+  if (b.dataset.tab === "shop") renderShop();
+  if (b.dataset.tab === "lib") renderLibrary();
+  if (b.dataset.tab === "calc") fitTimeline();
+});
+
+// ---------- wire up ----------
+$("flour").onchange = onChange;
+$("yeast").onchange = onChange;
+$("style").onchange = () => {
+  const s = STYLES[$("style").value];
+  if (s.ball !== null) { steppers.ball.set(s.ball); steppers.hyd.set(s.hyd); $("flour").value = s.flour; }
+  onChange();
+};
+document.querySelectorAll("#modes button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+$("cold").onchange = () => {
+  if (!$("cold").checked && st.mode === "48") { setMode("24", false); toast("Room-temp ferment can't run 48 hrs, so switched to 24 hrs", 5000); }
+  else updateFermentUI();
+  if (!st.dateEdited) updateDefaultDate();
+  onChange();
+};
+$("useClock").onchange = () => { $("serve").disabled = !$("useClock").checked; };
+$("serve").addEventListener("input", () => { st.dateEdited = true; });
+$("makeBtn").onclick = () => make();
+$("copyBtn").onclick = () => copyText(recipeText(), "Recipe copied to clipboard");
+$("printBtn").onclick = () => { if (!st.recipe) make(false); setTimeout(() => window.print(), 50); };
+if (navigator.share) {
+  $("shareBtn").hidden = false;
+  $("shareBtn").onclick = () => navigator.share({title: "Pizza recipe", text: recipeText()}).catch(() => {});
+}
+window.addEventListener("resize", fitTimeline);
+
+// ---------- start ----------
+setInputs(S.inputs);
+$("shopDough").checked = st.shopDough;
+updateDefaultDate();
+reloadPresets();
+applyTheme();
+renderRecipe();
+</script>
+</body>
+</html>
