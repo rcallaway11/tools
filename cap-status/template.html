@@ -588,17 +588,50 @@ $("seg").querySelectorAll("button").forEach(b => b.onclick = () => {
 /* Snapshot data is written into the page by build_cap_status.js (run on a schedule).
    Artifacts can't reach the park's website directly, so the page shows the latest snapshot. */
 const SNAPSHOT = /*SNAPSHOT*/null/*END*/;
-(() => {
-  if (!SNAPSHOT) { renderHeader(["No snapshot has been captured yet."], false); render(); return; }
-  DATA = SNAPSHOT;
-  const at = new Date(SNAPSHOT.captured_at);
+let CURRENT = null;
+function show(snap) {
+  if (!snap) { renderHeader(["No snapshot has been captured yet."], false); render(); return; }
+  CURRENT = snap; DATA = snap;
+  renderHeader(snap.errors || [], false);
+  updateAgeLabel();
+  render();
+}
+function updateAgeLabel() {
+  if (!CURRENT) return;
+  const at = new Date(CURRENT.captured_at);
   const mins = Math.round((Date.now() - at) / 60000);
   const ago = mins < 1 ? "just now" : mins < 60 ? `${mins} min ago` : mins < 1440 ? `${Math.round(mins / 60)} h ago` : `${Math.round(mins / 1440)} days ago`;
-  renderHeader(SNAPSHOT.errors || [], false);
   $("updated").textContent = `Checked ${at.toLocaleString("en-NZ", { weekday: "short", hour: "numeric", minute: "2-digit" })} · ${ago}`;
-  if (mins > 180) $("updated").style.background = "rgba(255,183,77,.35)";
-  render();
-})();
+  $("updated").style.background = mins > 90 ? "rgba(255,183,77,.35)" : "";
+}
+
+/* iPhone home-screen apps (and the 10-min GitHub cache) can show an old copy of this page.
+   So whenever the page is opened or brought back to the front, quietly re-download it,
+   bypassing every cache, and swap in the newer snapshot if there is one. */
+let checking = false;
+async function checkForNewer() {
+  if (checking) return; checking = true;
+  try {
+    const r = await fetch(location.pathname + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const m = (await r.text()).match(/\/\*SNAPSHOT\*\/([\s\S]*?)\/\*END\*\//);
+    const snap = m && JSON.parse(m[1]);
+    if (snap && (!CURRENT || snap.captured_at > CURRENT.captured_at)) show(snap);
+  } catch (e) { /* offline: keep showing what we have */ }
+  finally { checking = false; updateAgeLabel(); }
+}
+
+show(SNAPSHOT);
+if (location.protocol.startsWith("http") && !/jsdom/i.test(navigator.userAgent)) {   // skip during the build step
+  checkForNewer();
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForNewer(); });
+  window.addEventListener("pageshow", e => { if (e.persisted) checkForNewer(); });
+  window.addEventListener("focus", checkForNewer);
+  setInterval(() => { if (document.visibilityState === "visible") checkForNewer(); }, 5 * 60 * 1000);
+  $("updated").style.cursor = "pointer";
+  $("updated").title = "Tap to check for newer data";
+  $("updated").addEventListener("click", checkForNewer);
+}
 </script>
 </body>
 </html>
