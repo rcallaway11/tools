@@ -15,7 +15,10 @@
 :root{--bg:#17120F;--card:#231C17;--field:#2E251F;--border:#44362C;--text:#F5E9DC;--muted:#B8A593;--orange:#FF8A3D;--red:#E63946;--yellow:#FFC94D;--green:#7BC96F;--btn:#1A0F08}
 [data-theme=light]{--bg:#FBF4EA;--card:#FFFFFF;--field:#F5EBDD;--border:#E0CDB5;--text:#2B1D14;--muted:#7A6652;--orange:#E8641A;--red:#D1303D;--yellow:#A86A00;--green:#3E8E41;--btn:#FFFFFF}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+button,a,label,input,select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.step button{-webkit-user-select:none;user-select:none}
+input,select{font-size:16px!important}  /* below 16px iPhone zooms in when a box is tapped */
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
   padding:env(safe-area-inset-top) max(14px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
 button,input,select{font:inherit;color:inherit}
@@ -146,6 +149,7 @@ dialog input[type=text]{margin-bottom:8px}
     <div><span class="lbl">💧 Hydration</span><div class="step" data-id="hyd" data-min="50" data-max="90" data-step="0.5" data-dp="1" data-unit="%"></div></div>
     <div><span class="lbl" title="Biggest amount of dough your mixer or bowl can handle in one go">🥣 Max per mix</span><div class="step" data-id="capacity" data-min="500" data-max="20000" data-step="250" data-dp="0" data-unit="g"></div></div>
     <div class="full hint" id="hydHint"></div>
+    <div class="full"><button class="ghost" id="resetBtn" style="width:100%">↺ Reset settings to defaults</button></div>
     <div class="full"><span class="lbl">⏱️ Time until serving</span>
       <div class="seg" id="modes"><button data-mode="same">12-14 hrs</button><button data-mode="24">24 hrs</button><button data-mode="48">48 hrs</button></div></div>
     <div class="full"><span class="lbl">🌡️ Ball ferment</span>
@@ -168,7 +172,6 @@ dialog input[type=text]{margin-bottom:8px}
     <button class="ghost" id="delPreset" title="Delete the selected preset">🗑</button>
     <button class="ghost" id="copyBtn">📋 Copy</button>
     <button class="ghost" id="shareBtn" hidden>📤 Share</button>
-    <button class="ghost" id="printBtn">🖨️ Print / PDF</button>
     <button class="ghost" id="fbBtn" title="Tell the app how the last dough turned out to tune the yeast">🎯 Feedback</button>
     <button class="ghost" id="themeBtn"></button>
    </div>
@@ -566,6 +569,7 @@ function renderText(r, serve) {
 // App state (saved in this browser / home-screen app)
 // ==========================================================================
 const STORE_KEY = "pizzaCalc.v1";
+const CUSTOM_DEFAULTS = {ball: 325, hyd: 64.5, flour: DEFAULT_FLOUR};
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 
@@ -580,6 +584,8 @@ const st = {
   shopChecked: new Set(S.shop_checked || []),
   shopDough: S.shop_dough !== undefined ? !!S.shop_dough : true,
   theme: S.theme === "light" ? "light" : "dark",
+  customVals: S.custom_values || null,
+  prevStyle: DEFAULT_STYLE,
   mode: "48",
   dateEdited: false,
   recipe: null,
@@ -590,7 +596,7 @@ const st = {
 function saveAll() {
   const d = {inputs: getInputs(), calibration: st.calib, history: st.history, presets: st.presets, theme: st.theme,
              custom_toppings: st.custom, selected_toppings: [...st.selected].sort(),
-             shop_checked: [...st.shopChecked].sort(), shop_dough: st.shopDough};
+             shop_checked: [...st.shopChecked].sort(), shop_dough: st.shopDough, custom_values: st.customVals};
   try { localStorage.setItem(STORE_KEY, JSON.stringify(d)); } catch (e) {}
 }
 
@@ -640,6 +646,7 @@ function setInputs(d) {
   if (d.style in STYLES) $("style").value = d.style;
   if (d.yeast in YEAST_FACTORS) $("yeast").value = d.yeast;
   for (const k of ["ball", "count", "hyd", "capacity", "room", "fridge"]) steppers[k].set(d[k]);
+  st.prevStyle = $("style").value;
   setMode(d.mode, false);
   refreshHints();
 }
@@ -907,8 +914,18 @@ document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
 $("flour").onchange = onChange;
 $("yeast").onchange = onChange;
 $("style").onchange = () => {
-  const s = STYLES[$("style").value];
-  if (s.ball !== null) { steppers.ball.set(s.ball); steppers.hyd.set(s.hyd); $("flour").value = s.flour; }
+  const name = $("style").value, s = STYLES[name];
+  // leaving Custom: remember the user's own numbers so we can put them back later
+  if (st.prevStyle === DEFAULT_STYLE && name !== DEFAULT_STYLE)
+    st.customVals = {ball: val("ball"), hyd: val("hyd"), flour: $("flour").value};
+  if (s.ball !== null) {
+    steppers.ball.set(s.ball); steppers.hyd.set(s.hyd); $("flour").value = s.flour;
+  } else {   // back to Custom: restore remembered values, or the recipe defaults
+    const c = Object.assign({}, CUSTOM_DEFAULTS, st.customVals || {});
+    steppers.ball.set(c.ball); steppers.hyd.set(c.hyd);
+    $("flour").value = c.flour in FLOURS ? c.flour : DEFAULT_FLOUR;
+  }
+  st.prevStyle = name;
   onChange();
 };
 document.querySelectorAll("#modes button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
@@ -922,7 +939,17 @@ $("useClock").onchange = () => { $("serve").disabled = !$("useClock").checked; }
 $("serve").addEventListener("input", () => { st.dateEdited = true; });
 $("makeBtn").onclick = () => make();
 $("copyBtn").onclick = () => copyText(recipeText(), "Recipe copied to clipboard");
-$("printBtn").onclick = () => { if (!st.recipe) make(false); setTimeout(() => window.print(), 50); };
+$("resetBtn").onclick = () => {
+  if (!confirm("Reset all calculator settings to their defaults?\n(Your pizzas, presets and yeast calibration are kept.)")) return;
+  st.customVals = null;
+  st.dateEdited = false;
+  $("useClock").checked = false; $("serve").disabled = true;
+  setInputs({});          // empty = all defaults
+  updateDefaultDate();
+  $("presetBox").value = "";
+  saveAll();
+  toast("Settings reset to defaults");
+};
 if (navigator.share) {
   $("shareBtn").hidden = false;
   $("shareBtn").onclick = () => navigator.share({title: "Pizza recipe", text: recipeText()}).catch(() => {});
